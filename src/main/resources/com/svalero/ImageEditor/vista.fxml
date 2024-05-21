@@ -35,6 +35,3 @@
         <ImageView fx:id="imageView" fitWidth="300" fitHeight="300" preserveRatio="true" />
     </right>
 </BorderPane>
-
-
-        <!--com.svalero.ImageEditor.Controlador-->
