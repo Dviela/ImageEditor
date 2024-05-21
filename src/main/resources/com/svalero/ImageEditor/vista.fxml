@@ -1,27 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?>
+<?import javafx.collections.FXCollections?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 
+<?import java.lang.String?>
+<?import javafx.scene.control.ComboBox?>
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.svalero.ImageEditor.Controlador">
     <top>
-        <HBox spacing="10" padding="10">
+        <HBox >
             <children>
                 <Button text="Cargar Imágenes" onAction="#cargarImagenes" />
                 <Button text="Aplicar Filtro" onAction="#aplicarFiltro" />
                 <Button text="Guardar Imágenes" onAction="#guardarImagenes" />
-                <ChoiceBox fx:id="choiceFiltros">
+                <ComboBox fx:id="choiceFiltros" promptText="Seleccionar filtro">
                     <items>
-                        AumentoBrillo
-                        EscalaGrises
-                        InvertirColor
-                        Sepia
+                        <FXCollections fx:factory="observableArrayList">
+                            <String fx:value="AumentoBrillo" />
+                            <String fx:value="EscalaGrises" />
+                            <String fx:value="InvertirColor" />
+                            <String fx:value="Sepia" />
+                        </FXCollections>
                     </items>
-                </ChoiceBox>
+                </ComboBox>
             </children>
         </HBox>
     </top>

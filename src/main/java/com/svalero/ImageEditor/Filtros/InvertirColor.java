@@ -1,25 +1,25 @@
 package com.svalero.ImageEditor.Filtros;
 
-import java.awt.image.BufferedImage;
-import java.awt.image.WritableRaster;
+import javafx.scene.image.Image;
+import javafx.scene.image.PixelWriter;
+import javafx.scene.image.WritableImage;
+import javafx.scene.paint.Color;
 
 public class InvertirColor {
+    public Image aplicar(Image image) {
+        int width = (int) image.getWidth();
+        int height = (int) image.getHeight();
+        WritableImage writableImage = new WritableImage(width, height);
+        PixelWriter pixelWriter = writableImage.getPixelWriter();
 
-    public static BufferedImage aplicarFiltro(BufferedImage imagen) {
-        int ancho = imagen.getWidth();
-        int alto = imagen.getHeight();
-        BufferedImage imagenSalida = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
-        WritableRaster raster = imagen.getRaster();
-
-        for (int y = 0; y < alto; y++) {
-            for (int x = 0; x < ancho; x++) {
-                int[] pixel = raster.getPixel(x, y, (int[]) null);
-                pixel[0] = 255 - pixel[0]; // Rojo
-                pixel[1] = 255 - pixel[1]; // Verde
-                pixel[2] = 255 - pixel[2]; // Azul
-                imagenSalida.setRGB(x, y, (pixel[0] << 16) | (pixel[1] << 8) | pixel[2]);
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                Color color = image.getPixelReader().getColor(x, y);
+                color = new Color(1.0 - color.getRed(), 1.0 - color.getGreen(), 1.0 - color.getBlue(), color.getOpacity());
+                pixelWriter.setColor(x, y, color);
             }
         }
-        return imagenSalida;
+
+        return writableImage;
     }
 }
