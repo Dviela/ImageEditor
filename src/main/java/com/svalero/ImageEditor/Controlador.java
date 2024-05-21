@@ -15,6 +15,7 @@ import javafx.scene.image.WritableImage;
 import javafx.stage.FileChooser;
 
 import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
@@ -102,21 +103,36 @@ public class Controlador {
     @FXML
     private void guardarImagenes() {
         if (imageView.getImage() != null) {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
-            File file = fileChooser.showSaveDialog(null);
+            // Obtener el filtro seleccionado
+            String selectedFilter = choiceFiltros.getValue();
+            // Obtener la ruta del archivo seleccionado de la lista
+            String selectedFilePath = listaImagenes.getSelectionModel().getSelectedItem();
 
-            if (file != null) {
-                try {
-                    WritableImage writableImage = new WritableImage((int) imageView.getImage().getWidth(), (int) imageView.getImage().getHeight());
-                    imageView.snapshot(null, writableImage);
-                    RenderedImage renderedImage = SwingFXUtils.fromFXImage(writableImage, null);
-                    ImageIO.write(renderedImage, "png", file);
-                } catch (IOException ex) {
-                    ex.printStackTrace();
+            if (selectedFilePath != null && selectedFilter != null) {
+                File originalFile = new File(selectedFilePath);
+                String originalFileName = originalFile.getName();
+                String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+                String newFileName = selectedFilter + "_" + fileNameWithoutExtension + ".png";
+
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
+                fileChooser.setInitialFileName(newFileName);
+                File file = fileChooser.showSaveDialog(null);
+
+                if (file != null) {
+                    try {
+                        // Guardar la imagen en su tamaño original
+                        Image originalImage = imageView.getImage();
+                        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(originalImage, null);
+                        ImageIO.write(bufferedImage, "png", file);
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
                 }
             }
         }
     }
+
+
 
 }
