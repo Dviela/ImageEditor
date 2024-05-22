@@ -19,15 +19,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-
 
 public class Controlador {
 
     @FXML
     private ListView<String> listaImagenes;
-    @FXML
-    private ImageView imageView;
     @FXML
     private ComboBox<String> choiceFiltros;
     @FXML
@@ -37,20 +33,16 @@ public class Controlador {
     @FXML
     private Button guardarImagenes;
     @FXML
-    private VBox progressBox;
-    @FXML
     private TabPane tabPane;
 
-    private List<Image> loadedImages;
-    private List<ProgressBar> progressBars;
-    private List<Label> progressLabels;
+    private List<Image> loadedImages = new ArrayList<>();
+    private List<ProgressBar> progressBars = new ArrayList<>();
+    private List<Label> progressLabels = new ArrayList<>();
+    private List<String> imagePaths = new ArrayList<>();
 
     @FXML
     public void initialize() {
         listaImagenes.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> mostrarImagenSeleccionada());
-        loadedImages = new ArrayList<>();
-        progressBars = new ArrayList<>();
-        progressLabels = new ArrayList<>();
     }
 
     @FXML
@@ -63,12 +55,19 @@ public class Controlador {
 
         if (selectedFiles != null) {
             listaImagenes.getItems().clear();
-            progressBox.getChildren().clear();
+            tabPane.getTabs().clear();
             loadedImages.clear();
+            progressBars.clear();
+            progressLabels.clear();
+            imagePaths.clear();
+
             for (File file : selectedFiles) {
-                listaImagenes.getItems().add(file.getAbsolutePath());
+                String filePath = file.getAbsolutePath();
+                String fileName = file.getName();
+                listaImagenes.getItems().add(fileName);
                 Image image = new Image(file.toURI().toString());
                 loadedImages.add(image);
+                imagePaths.add(filePath);
             }
         }
     }
@@ -77,11 +76,47 @@ public class Controlador {
     private void mostrarImagenSeleccionada() {
         int selectedIndex = listaImagenes.getSelectionModel().getSelectedIndex();
         if (selectedIndex >= 0) {
-            //imageView.setImage(loadedImages.get(selectedIndex));
+            Image image = loadedImages.get(selectedIndex);
+            String filePath = imagePaths.get(selectedIndex);
+
+            agregarPestanaConImagen(image, filePath);
         }
     }
 
-    private void filtroConProgreso(Image image, String filter, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
+    private void agregarPestanaConImagen(Image image, String filePath) {
+        String fileName = new File(filePath).getName();
+        ImageView imageView = new ImageView(image);
+        imageView.setFitWidth(300);
+        imageView.setPreserveRatio(true);
+        ProgressBar progressBar = new ProgressBar(0);
+        Label progressLabel = new Label("0%");
+        progressBars.add(progressBar);
+        progressLabels.add(progressLabel);
+
+        VBox vBox = new VBox(imageView, progressBar, progressLabel);
+        Tab tab = new Tab(fileName, vBox);
+        tabPane.getTabs().add(tab);
+        tabPane.getSelectionModel().select(tab);
+    }
+
+    @FXML
+    private void aplicarFiltro() {
+        String selectedFilter = choiceFiltros.getValue();
+        if (selectedFilter != null && !loadedImages.isEmpty()) {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                int index = tabPane.getTabs().indexOf(selectedTab);
+                VBox vBox = (VBox) selectedTab.getContent();
+                ImageView imageView = (ImageView) vBox.getChildren().get(0);
+                ProgressBar progressBar = progressBars.get(index);
+                Label progressLabel = progressLabels.get(index);
+                Image image = imageView.getImage();
+                filtroConProgreso(image, selectedFilter, index, progressBar, progressLabel, imageView);
+            }
+        }
+    }
+
+    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
         Task<Image> task = new Task<>() {
             @Override
             protected Image call() throws Exception {
@@ -114,63 +149,26 @@ public class Controlador {
         progressBar.progressProperty().bind(task.progressProperty());
         progressLabel.textProperty().bind(task.messageProperty());
 
-        task.setOnSucceeded(e -> {
-            Image filteredImage = task.getValue();
-            imageView.setImage(filteredImage); // Actualizar el ImageView con la imagen filtrada
-        });
+        task.setOnSucceeded(e -> imageView.setImage(task.getValue()));
         task.setOnFailed(e -> task.getException().printStackTrace());
 
         new Thread(task).start();
     }
 
-
-
-
-
-    @FXML
-    private void aplicarFiltro() {
-        String selectedFilter = choiceFiltros.getValue();
-        int selectedIndex = listaImagenes.getSelectionModel().getSelectedIndex();
-        if (selectedFilter != null && loadedImages != null && !loadedImages.isEmpty() && selectedIndex >= 0) {
-            Image image = loadedImages.get(selectedIndex);
-
-            ProgressBar progressBar = new ProgressBar(0);
-            Label progressLabel = new Label("0%");
-            progressBars.add(progressBar);
-            progressLabels.add(progressLabel);
-
-            // Crear una nueva pestaña con la imagen original y la barra de progreso
-            ImageView imageView = new ImageView(image);
-            imageView.setFitWidth(400);  // Ajusta el tamaño máximo del ancho
-            imageView.setFitHeight(300); // Ajusta el tamaño máximo del alto
-            imageView.setPreserveRatio(true); // Mantiene la relación de aspecto
-            VBox vbox = new VBox(imageView, progressBar, progressLabel);
-            Tab tab = new Tab("Imagen " + (tabPane.getTabs().size() + 1), vbox);
-            tabPane.getTabs().add(tab);
-            tabPane.getSelectionModel().select(tab);
-
-            // Aplicar el filtro a la imagen
-            filtroConProgreso(image, selectedFilter, progressBar, progressLabel, imageView);
-        }
-    }
-
-
     @FXML
     private void guardarImagenes() {
         if (!loadedImages.isEmpty()) {
-            // Obtener la pestaña activa
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab != null) {
-                ImageView imageView = (ImageView) ((VBox) selectedTab.getContent()).getChildren().get(0);
+                VBox vBox = (VBox) selectedTab.getContent();
+                ImageView imageView = (ImageView) vBox.getChildren().get(0);
                 Image originalImage = imageView.getImage();
 
-                // Obtener el filtro seleccionado
                 String selectedFilter = choiceFiltros.getValue();
-                // Obtener la ruta del archivo seleccionado de la lista
                 String selectedFilePath = listaImagenes.getSelectionModel().getSelectedItem();
 
                 if (selectedFilePath != null && selectedFilter != null) {
-                    File originalFile = new File(selectedFilePath);
+                    File originalFile = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex()));
                     String originalFileName = originalFile.getName();
                     String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
                     String newFileName = selectedFilter + "_" + fileNameWithoutExtension + ".png";
@@ -191,18 +189,5 @@ public class Controlador {
                 }
             }
         }
-    }
-
-
-    private void agregarPestanaConImagen(Image image) {
-        ImageView imageView = new ImageView(image);
-        Tab tab = new Tab("Imagen " + (tabPane.getTabs().size() + 1), imageView);
-        tabPane.getTabs().add(tab);
-        ProgressBar progressBar = new ProgressBar();
-        Label progressLabel = new Label();
-        VBox vBox = new VBox(progressBar, progressLabel);
-        progressBox.getChildren().add(vBox);
-        progressBars.add(progressBar);
-        progressLabels.add(progressLabel);
     }
 }
