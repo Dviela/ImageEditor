@@ -1,4 +1,4 @@
-package com.svalero.ImageEditor.Filtros;
+package com.svalero.ImageEditor.filtros;
 
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelWriter;

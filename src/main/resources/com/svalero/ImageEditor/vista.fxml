@@ -1,44 +1,69 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.collections.FXCollections?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.control.ListView?>
-<?import javafx.scene.control.TabPane?>
-<?import javafx.scene.image.ImageView?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
 <?import java.lang.String?>
-<BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.svalero.ImageEditor.Controlador">
+<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.svalero.ImageEditor.Controlador">
+
+    <!-- Menú de la parte superior -->
     <top>
-        <HBox >
+        <MenuBar>
+            <Menu text="Archivo">
+                <MenuItem text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <MenuItem text="Guardar Imágenes" onAction="#guardarImagenes"/>
+                <SeparatorMenuItem/>
+                <MenuItem text="Salir" onAction="#salir"/>
+            </Menu>
+            <Menu text="Edición">
+                <MenuItem text="Aplicar Filtro" onAction="#aplicarFiltro"/>
+            </Menu>
+        </MenuBar>
+    </top>
+
+    <!-- Panel izquierdo con la lista de imágenes y botones -->
+    <left>
+        <VBox spacing="10">
             <children>
-                <Button text="Cargar Imágenes" onAction="#cargarImagenes" />
-                <Button text="Aplicar Filtro" onAction="#aplicarFiltro" />
-                <Button text="Guardar Imágenes" onAction="#guardarImagenes" />
-                <ComboBox fx:id="choiceFiltros" promptText="Seleccionar filtro">
+                <Label text="Imágenes:"/>
+                <ListView fx:id="listaImagenes"/>
+                <Button text="Cargar Imágenes" onAction="#cargarImagenes"/>
+            </children>
+        </VBox>
+    </left>
+
+    <!-- Panel central con las pestañas para las imágenes -->
+    <center>
+        <TabPane fx:id="tabPane"/>
+    </center>
+
+    <!-- Panel derecho con lista de filtros y el botón para aplicarlos -->
+    <right>
+        <VBox spacing="10">
+            <children>
+                <Label text="Filtros"/>
+                <ComboBox fx:id="choiceFiltros">
                     <items>
                         <FXCollections fx:factory="observableArrayList">
-                            <String fx:value="AumentoBrillo" />
-                            <String fx:value="EscalaGrises" />
-                            <String fx:value="InvertirColor" />
-                            <String fx:value="Sepia" />
+                            <String fx:value="AumentoBrillo"/>
+                            <String fx:value="EscalaGrises"/>
+                            <String fx:value="InvertirColor"/>
+                            <String fx:value="Sepia"/>
                         </FXCollections>
                     </items>
                 </ComboBox>
+                <Button text="Aplicar Filtro" onAction="#aplicarFiltro"/>
             </children>
-        </HBox>
-    </top>
-    <center>
-        <TabPane fx:id="tabPane" prefWidth="200" prefHeight="200">
-        </TabPane>
-    </center>
-    <right>
-        <ListView fx:id="listaImagenes" />
-    </right>
-    <bottom>
-        <VBox fx:id="progressBox" spacing="5" >
         </VBox>
+    </right>
+
+    <!-- Panel inferior con el botón para guardar imágenes -->
+    <bottom>
+        <HBox alignment="CENTER_RIGHT" spacing="10">
+            <Button text="Guardar Imágenes" onAction="#guardarImagenes"/>
+        </HBox>
     </bottom>
+
 </BorderPane>

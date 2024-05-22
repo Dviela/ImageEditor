@@ -1,9 +1,9 @@
 package com.svalero.ImageEditor;
 
-import com.svalero.ImageEditor.Filtros.AumentoBrillo;
-import com.svalero.ImageEditor.Filtros.EscalaGrises;
-import com.svalero.ImageEditor.Filtros.InvertirColor;
-import com.svalero.ImageEditor.Filtros.Sepia;
+import com.svalero.ImageEditor.filtros.AumentoBrillo;
+import com.svalero.ImageEditor.filtros.EscalaGrises;
+import com.svalero.ImageEditor.filtros.InvertirColor;
+import com.svalero.ImageEditor.filtros.Sepia;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
@@ -173,9 +173,17 @@ public class Controlador {
                     String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
                     String newFileName = selectedFilter + "_" + fileNameWithoutExtension + ".png";
 
+                    // Obtener la ruta del directorio de la imagen original
+                    String originalImagePath = originalFile.getParent();
+                    File initialDirectory = new File(originalImagePath);
+
                     FileChooser fileChooser = new FileChooser();
                     fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
                     fileChooser.setInitialFileName(newFileName);
+
+                    // Establecer el directorio inicial del cuadro de diálogo de guardar
+                    fileChooser.setInitialDirectory(initialDirectory);
+
                     File file = fileChooser.showSaveDialog(null);
 
                     if (file != null) {
@@ -189,5 +197,11 @@ public class Controlador {
                 }
             }
         }
+    }
+
+
+    @FXML
+    private void salir() {
+        System.exit(0);
     }
 }
