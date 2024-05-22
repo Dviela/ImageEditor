@@ -7,10 +7,7 @@ import com.svalero.ImageEditor.Filtros.Sepia;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListView;
-import javafx.scene.control.ProgressBar;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
@@ -42,6 +39,8 @@ public class Controlador {
     private VBox progressBox;
 
     private List<Image> loadedImages;
+    private List<ProgressBar> progressBars;
+    private List<Label> progressLabels;
 
     @FXML
     public void initialize() {
@@ -79,12 +78,20 @@ public class Controlador {
         }
     }
 
-    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar) {
+    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar, Label progressLabel) {
         Task<Image> task = new Task<>() {
             @Override
             protected Image call() throws Exception {
-                updateProgress(0, 100);
-                Thread.sleep(1000);  // Simular retardo
+                for (int progress = 0; progress <= 100; progress++) {
+                    // Calcular el progreso en pasos de 1/100
+                    updateProgress(progress, 100);
+
+                    // Actualizar el texto de la etiqueta de progreso
+                    updateMessage(progress + "%");
+
+                    // Simular retardo
+                    Thread.sleep(50);  // Ajusta este valor según sea necesario
+                }
 
                 Image filteredImage = null;
                 switch (filter) {
@@ -101,21 +108,24 @@ public class Controlador {
                         filteredImage = new Sepia().aplicar(image);
                         break;
                 }
-                updateProgress(50, 100);
-                Thread.sleep(500);  // Simular retardo
 
-                updateProgress(100, 100);
                 return filteredImage;
             }
         };
 
+        // Vincula la barra de progreso con el progreso del task
         progressBar.progressProperty().bind(task.progressProperty());
+
+        // Vincular el porcentaje con task
+        progressLabel.textProperty().bind(task.messageProperty());
 
         task.setOnSucceeded(e -> loadedImages.set(index, task.getValue()));
         task.setOnFailed(e -> task.getException().printStackTrace());
 
         new Thread(task).start();
     }
+
+
 
 
     @FXML
@@ -125,9 +135,11 @@ public class Controlador {
             progressBox.getChildren().clear();
             for (int i = 0; i < loadedImages.size(); i++) {
                 ProgressBar progressBar = new ProgressBar(0);
-                progressBox.getChildren().add(progressBar);
+                Label progressLabel = new Label("0%");
+                progressBox.getChildren().addAll(progressBar, progressLabel);
+
                 Image image = loadedImages.get(i);
-                filtroConProgreso(image, selectedFilter, i, progressBar);
+                filtroConProgreso(image, selectedFilter, i, progressBar, progressLabel);
             }
         }
     }
