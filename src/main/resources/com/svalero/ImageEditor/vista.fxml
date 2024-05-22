@@ -8,6 +8,7 @@
 
 <?import java.lang.String?>
 <?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.layout.VBox?>
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.svalero.ImageEditor.Controlador">
     <top>
         <HBox >
@@ -34,4 +35,8 @@
     <right>
         <ImageView fx:id="imageView" fitWidth="300" fitHeight="300" preserveRatio="true" />
     </right>
+    <bottom>
+        <VBox fx:id="progressBox" spacing="5" >
+        </VBox>
+    </bottom>
 </BorderPane>

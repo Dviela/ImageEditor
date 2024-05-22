@@ -4,21 +4,20 @@ import com.svalero.ImageEditor.Filtros.AumentoBrillo;
 import com.svalero.ImageEditor.Filtros.EscalaGrises;
 import com.svalero.ImageEditor.Filtros.InvertirColor;
 import com.svalero.ImageEditor.Filtros.Sepia;
+import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.ListView;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.image.WritableImage;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -36,8 +35,12 @@ public class Controlador {
     private Button aplicarFiltro;
     @FXML
     private Button guardarImagenes;
+    @FXML
+    private VBox progressBox;
 
     private List<Image> loadedImages;
+    private List<ProgressBar> progressBars;
+    private List<Label> progressLabels;
 
     @FXML
     public void initialize() {
@@ -53,13 +56,15 @@ public class Controlador {
         List<File> selectedFiles = fileChooser.showOpenMultipleDialog(null);
 
         if (selectedFiles != null) {
+            listaImagenes.getItems().clear();
+            progressBox.getChildren().clear();
+            loadedImages = new ArrayList<>();
             for (File file : selectedFiles) {
                 listaImagenes.getItems().add(file.getAbsolutePath());
+                loadedImages.add(new Image(file.toURI().toString()));
             }
             if (!selectedFiles.isEmpty()) {
-                // Load the first image to display initially
-                Image firstImage = new Image(selectedFiles.get(0).toURI().toString());
-                imageView.setImage(firstImage);
+                imageView.setImage(loadedImages.get(0));
                 listaImagenes.getSelectionModel().select(0);
             }
         }
@@ -67,34 +72,74 @@ public class Controlador {
 
     @FXML
     private void mostrarImagenSeleccionada() {
-        String selectedFilePath = listaImagenes.getSelectionModel().getSelectedItem();
-        if (selectedFilePath != null) {
-            Image selectedImage = new Image(new File(selectedFilePath).toURI().toString());
-            imageView.setImage(selectedImage);
+        int selectedIndex = listaImagenes.getSelectionModel().getSelectedIndex();
+        if (selectedIndex >= 0) {
+            imageView.setImage(loadedImages.get(selectedIndex));
         }
     }
+
+    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar, Label progressLabel) {
+        Task<Image> task = new Task<>() {
+            @Override
+            protected Image call() throws Exception {
+                for (int progress = 0; progress <= 100; progress++) {
+                    // Calcular el progreso en pasos de 1/100
+                    updateProgress(progress, 100);
+
+                    // Actualizar el número de progreso
+                    updateMessage(progress + "%");
+
+                    // Simular retardo
+                    Thread.sleep(50);
+                }
+
+                Image filteredImage = null;
+                switch (filter) {
+                    case "AumentoBrillo":
+                        filteredImage = new AumentoBrillo().aplicar(image);
+                        break;
+                    case "EscalaGrises":
+                        filteredImage = new EscalaGrises().aplicar(image);
+                        break;
+                    case "InvertirColor":
+                        filteredImage = new InvertirColor().aplicar(image);
+                        break;
+                    case "Sepia":
+                        filteredImage = new Sepia().aplicar(image);
+                        break;
+                }
+
+                return filteredImage;
+            }
+        };
+
+        // Vincula la barra de progreso con el progreso del task
+        progressBar.progressProperty().bind(task.progressProperty());
+
+        // Vincular el porcentaje con task
+        progressLabel.textProperty().bind(task.messageProperty());
+
+        task.setOnSucceeded(e -> loadedImages.set(index, task.getValue()));
+        task.setOnFailed(e -> task.getException().printStackTrace());
+
+        new Thread(task).start();
+    }
+
+
+
 
     @FXML
     private void aplicarFiltro() {
         String selectedFilter = choiceFiltros.getValue();
-        if (selectedFilter != null && imageView.getImage() != null) {
-            Image filteredImage = null;
-            switch (selectedFilter) {
-                case "AumentoBrillo":
-                    filteredImage = new AumentoBrillo().aplicar(imageView.getImage());
-                    break;
-                case "EscalaGrises":
-                    filteredImage = new EscalaGrises().aplicar(imageView.getImage());
-                    break;
-                case "InvertirColor":
-                    filteredImage = new InvertirColor().aplicar(imageView.getImage());
-                    break;
-                case "Sepia":
-                    filteredImage = new Sepia().aplicar(imageView.getImage());
-                    break;
-            }
-            if (filteredImage != null) {
-                imageView.setImage(filteredImage);
+        if (selectedFilter != null && loadedImages != null && !loadedImages.isEmpty()) {
+            progressBox.getChildren().clear();
+            for (int i = 0; i < loadedImages.size(); i++) {
+                ProgressBar progressBar = new ProgressBar(0);
+                Label progressLabel = new Label("0%");
+                progressBox.getChildren().addAll(progressBar, progressLabel);
+
+                Image image = loadedImages.get(i);
+                filtroConProgreso(image, selectedFilter, i, progressBar, progressLabel);
             }
         }
     }
@@ -132,7 +177,6 @@ public class Controlador {
             }
         }
     }
-
 
 
 }
