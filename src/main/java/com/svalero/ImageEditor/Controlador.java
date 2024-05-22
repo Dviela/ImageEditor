@@ -86,11 +86,11 @@ public class Controlador {
                     // Calcular el progreso en pasos de 1/100
                     updateProgress(progress, 100);
 
-                    // Actualizar el texto de la etiqueta de progreso
+                    // Actualizar el número de progreso
                     updateMessage(progress + "%");
 
                     // Simular retardo
-                    Thread.sleep(50);  // Ajusta este valor según sea necesario
+                    Thread.sleep(50);
                 }
 
                 Image filteredImage = null;
