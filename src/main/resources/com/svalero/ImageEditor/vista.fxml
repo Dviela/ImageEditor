@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import javafx.collections.FXCollections?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TabPane?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
 <?import java.lang.String?>
-<?import javafx.scene.control.ComboBox?>
-<?import javafx.scene.layout.VBox?>
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.svalero.ImageEditor.Controlador">
     <top>
         <HBox >
@@ -30,10 +31,11 @@
         </HBox>
     </top>
     <center>
-        <ListView fx:id="listaImagenes" />
+        <TabPane fx:id="tabPane" prefWidth="200" prefHeight="200">
+        </TabPane>
     </center>
     <right>
-        <ImageView fx:id="imageView" fitWidth="300" fitHeight="300" preserveRatio="true" />
+        <ListView fx:id="listaImagenes" />
     </right>
     <bottom>
         <VBox fx:id="progressBox" spacing="5" >

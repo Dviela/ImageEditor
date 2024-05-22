@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 
 public class Controlador {
@@ -37,6 +38,8 @@ public class Controlador {
     private Button guardarImagenes;
     @FXML
     private VBox progressBox;
+    @FXML
+    private TabPane tabPane;
 
     private List<Image> loadedImages;
     private List<ProgressBar> progressBars;
@@ -45,6 +48,9 @@ public class Controlador {
     @FXML
     public void initialize() {
         listaImagenes.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> mostrarImagenSeleccionada());
+        loadedImages = new ArrayList<>();
+        progressBars = new ArrayList<>();
+        progressLabels = new ArrayList<>();
     }
 
     @FXML
@@ -58,14 +64,11 @@ public class Controlador {
         if (selectedFiles != null) {
             listaImagenes.getItems().clear();
             progressBox.getChildren().clear();
-            loadedImages = new ArrayList<>();
+            loadedImages.clear();
             for (File file : selectedFiles) {
                 listaImagenes.getItems().add(file.getAbsolutePath());
-                loadedImages.add(new Image(file.toURI().toString()));
-            }
-            if (!selectedFiles.isEmpty()) {
-                imageView.setImage(loadedImages.get(0));
-                listaImagenes.getSelectionModel().select(0);
+                Image image = new Image(file.toURI().toString());
+                loadedImages.add(image);
             }
         }
     }
@@ -74,22 +77,17 @@ public class Controlador {
     private void mostrarImagenSeleccionada() {
         int selectedIndex = listaImagenes.getSelectionModel().getSelectedIndex();
         if (selectedIndex >= 0) {
-            imageView.setImage(loadedImages.get(selectedIndex));
+            //imageView.setImage(loadedImages.get(selectedIndex));
         }
     }
 
-    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar, Label progressLabel) {
+    private void filtroConProgreso(Image image, String filter, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
         Task<Image> task = new Task<>() {
             @Override
             protected Image call() throws Exception {
                 for (int progress = 0; progress <= 100; progress++) {
-                    // Calcular el progreso en pasos de 1/100
                     updateProgress(progress, 100);
-
-                    // Actualizar el número de progreso
                     updateMessage(progress + "%");
-
-                    // Simular retardo
                     Thread.sleep(50);
                 }
 
@@ -113,13 +111,13 @@ public class Controlador {
             }
         };
 
-        // Vincula la barra de progreso con el progreso del task
         progressBar.progressProperty().bind(task.progressProperty());
-
-        // Vincular el porcentaje con task
         progressLabel.textProperty().bind(task.messageProperty());
 
-        task.setOnSucceeded(e -> loadedImages.set(index, task.getValue()));
+        task.setOnSucceeded(e -> {
+            Image filteredImage = task.getValue();
+            imageView.setImage(filteredImage); // Actualizar el ImageView con la imagen filtrada
+        });
         task.setOnFailed(e -> task.getException().printStackTrace());
 
         new Thread(task).start();
@@ -128,50 +126,67 @@ public class Controlador {
 
 
 
+
     @FXML
     private void aplicarFiltro() {
         String selectedFilter = choiceFiltros.getValue();
-        if (selectedFilter != null && loadedImages != null && !loadedImages.isEmpty()) {
-            progressBox.getChildren().clear();
-            for (int i = 0; i < loadedImages.size(); i++) {
-                ProgressBar progressBar = new ProgressBar(0);
-                Label progressLabel = new Label("0%");
-                progressBox.getChildren().addAll(progressBar, progressLabel);
+        int selectedIndex = listaImagenes.getSelectionModel().getSelectedIndex();
+        if (selectedFilter != null && loadedImages != null && !loadedImages.isEmpty() && selectedIndex >= 0) {
+            Image image = loadedImages.get(selectedIndex);
 
-                Image image = loadedImages.get(i);
-                filtroConProgreso(image, selectedFilter, i, progressBar, progressLabel);
-            }
+            ProgressBar progressBar = new ProgressBar(0);
+            Label progressLabel = new Label("0%");
+            progressBars.add(progressBar);
+            progressLabels.add(progressLabel);
+
+            // Crear una nueva pestaña con la imagen original y la barra de progreso
+            ImageView imageView = new ImageView(image);
+            imageView.setFitWidth(400);  // Ajusta el tamaño máximo del ancho
+            imageView.setFitHeight(300); // Ajusta el tamaño máximo del alto
+            imageView.setPreserveRatio(true); // Mantiene la relación de aspecto
+            VBox vbox = new VBox(imageView, progressBar, progressLabel);
+            Tab tab = new Tab("Imagen " + (tabPane.getTabs().size() + 1), vbox);
+            tabPane.getTabs().add(tab);
+            tabPane.getSelectionModel().select(tab);
+
+            // Aplicar el filtro a la imagen
+            filtroConProgreso(image, selectedFilter, progressBar, progressLabel, imageView);
         }
     }
 
 
     @FXML
     private void guardarImagenes() {
-        if (imageView.getImage() != null) {
-            // Obtener el filtro seleccionado
-            String selectedFilter = choiceFiltros.getValue();
-            // Obtener la ruta del archivo seleccionado de la lista
-            String selectedFilePath = listaImagenes.getSelectionModel().getSelectedItem();
+        if (!loadedImages.isEmpty()) {
+            // Obtener la pestaña activa
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                ImageView imageView = (ImageView) ((VBox) selectedTab.getContent()).getChildren().get(0);
+                Image originalImage = imageView.getImage();
 
-            if (selectedFilePath != null && selectedFilter != null) {
-                File originalFile = new File(selectedFilePath);
-                String originalFileName = originalFile.getName();
-                String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-                String newFileName = selectedFilter + "_" + fileNameWithoutExtension + ".png";
+                // Obtener el filtro seleccionado
+                String selectedFilter = choiceFiltros.getValue();
+                // Obtener la ruta del archivo seleccionado de la lista
+                String selectedFilePath = listaImagenes.getSelectionModel().getSelectedItem();
 
-                FileChooser fileChooser = new FileChooser();
-                fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
-                fileChooser.setInitialFileName(newFileName);
-                File file = fileChooser.showSaveDialog(null);
+                if (selectedFilePath != null && selectedFilter != null) {
+                    File originalFile = new File(selectedFilePath);
+                    String originalFileName = originalFile.getName();
+                    String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+                    String newFileName = selectedFilter + "_" + fileNameWithoutExtension + ".png";
 
-                if (file != null) {
-                    try {
-                        // Guardar la imagen en su tamaño original
-                        Image originalImage = imageView.getImage();
-                        BufferedImage bufferedImage = SwingFXUtils.fromFXImage(originalImage, null);
-                        ImageIO.write(bufferedImage, "png", file);
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
+                    FileChooser fileChooser = new FileChooser();
+                    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
+                    fileChooser.setInitialFileName(newFileName);
+                    File file = fileChooser.showSaveDialog(null);
+
+                    if (file != null) {
+                        try {
+                            BufferedImage bufferedImage = SwingFXUtils.fromFXImage(originalImage, null);
+                            ImageIO.write(bufferedImage, "png", file);
+                        } catch (IOException ex) {
+                            ex.printStackTrace();
+                        }
                     }
                 }
             }
@@ -179,4 +194,15 @@ public class Controlador {
     }
 
 
+    private void agregarPestanaConImagen(Image image) {
+        ImageView imageView = new ImageView(image);
+        Tab tab = new Tab("Imagen " + (tabPane.getTabs().size() + 1), imageView);
+        tabPane.getTabs().add(tab);
+        ProgressBar progressBar = new ProgressBar();
+        Label progressLabel = new Label();
+        VBox vBox = new VBox(progressBar, progressLabel);
+        progressBox.getChildren().add(vBox);
+        progressBars.add(progressBar);
+        progressLabels.add(progressLabel);
+    }
 }
