@@ -127,21 +127,13 @@ public class Controlador {
                     Thread.sleep(50);
                 }
 
-                Image filteredImage = null;
-                switch (filter) {
-                    case "AumentoBrillo":
-                        filteredImage = new AumentoBrillo().aplicar(image);
-                        break;
-                    case "EscalaGrises":
-                        filteredImage = new EscalaGrises().aplicar(image);
-                        break;
-                    case "InvertirColor":
-                        filteredImage = new InvertirColor().aplicar(image);
-                        break;
-                    case "Sepia":
-                        filteredImage = new Sepia().aplicar(image);
-                        break;
-                }
+                Image filteredImage = switch (filter) {
+                    case "AumentoBrillo" -> new AumentoBrillo().aplicar(image);
+                    case "EscalaGrises" -> new EscalaGrises().aplicar(image);
+                    case "InvertirColor" -> new InvertirColor().aplicar(image);
+                    case "Sepia" -> new Sepia().aplicar(image);
+                    default -> null;
+                };
 
                 // Agregar registro al historial
                 String filePath = imagePaths.get(index);
