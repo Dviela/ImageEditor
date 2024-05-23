@@ -20,7 +20,7 @@ public class EditorDeImagenes extends Application {
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/com/svalero/ImageEditor/vista.fxml")));
         primaryStage.setTitle("ImageEditor");
-        primaryStage.setScene(new Scene(root, 800, 600));
+        primaryStage.setScene(new Scene(root, 800, 650));
         primaryStage.show();
     }
     @Override
