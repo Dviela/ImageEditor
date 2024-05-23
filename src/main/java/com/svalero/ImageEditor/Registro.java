@@ -18,11 +18,11 @@ public class Registro {
 
     @Override
     public String toString() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        return "Nombre de la imagen: " + nombreImagen +
-                ", Ruta de la imagen: " + rutaImagen +
-                ", Filtro aplicado: " + filtroAplicado +
-                ", Fecha y hora: " + fechaHora.format(formatter);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy/HH:mm");
+        return "NOMBRE: " + nombreImagen +
+                ", RUTA: " + rutaImagen +
+                ", FILTRO: " + filtroAplicado +
+                ", FECHA/HORA: " + fechaHora.format(formatter);
     }
 
 
