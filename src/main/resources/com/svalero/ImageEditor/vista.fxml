@@ -59,10 +59,11 @@
         </VBox>
     </right>
 
-    <!-- Panel inferior con el botón para guardar imágenes -->
+    <!-- Panel inferior con el botón para Guardar imágenes y el de Ver Historial-->
     <bottom>
         <HBox alignment="CENTER_RIGHT" spacing="10">
             <Button text="Guardar Imágenes" onAction="#guardarImagenes"/>
+            <Button text="Ver Historial" onAction="#verHistorial"/>
         </HBox>
     </bottom>
 

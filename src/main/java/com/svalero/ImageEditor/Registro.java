@@ -1,6 +1,7 @@
 package com.svalero.ImageEditor;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class Registro {
     private String nombreImagen;
@@ -15,41 +16,14 @@ public class Registro {
         this.fechaHora = fechaHora;
     }
 
-    public String getNombreImagen() {
-        return nombreImagen;
-    }
-
-    public void setNombreImagen(String nombreImagen) {
-        this.nombreImagen = nombreImagen;
-    }
-
-    public String getRutaImagen() {
-        return rutaImagen;
-    }
-
-    public void setRutaImagen(String rutaImagen) {
-        this.rutaImagen = rutaImagen;
-    }
-
-    public String getFiltroAplicado() {
-        return filtroAplicado;
-    }
-
-    public void setFiltroAplicado(String filtroAplicado) {
-        this.filtroAplicado = filtroAplicado;
-    }
-
-    public LocalDateTime getFechaHora() {
-        return fechaHora;
-    }
-
-    public void setFechaHora(LocalDateTime fechaHora) {
-        this.fechaHora = fechaHora;
-    }
-
     @Override
     public String toString() {
-        return "Nombre de la Imagen: " + nombreImagen + ", Ruta de la Imagen: " + rutaImagen +
-                ", Filtro Aplicado: " + filtroAplicado + ", Fecha y Hora: " + fechaHora;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return "Nombre de la imagen: " + nombreImagen +
+                ", Ruta de la imagen: " + rutaImagen +
+                ", Filtro aplicado: " + filtroAplicado +
+                ", Fecha y hora: " + fechaHora.format(formatter);
     }
+
+
 }

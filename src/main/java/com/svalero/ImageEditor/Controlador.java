@@ -8,12 +8,15 @@ import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.time.LocalDateTime;
@@ -210,6 +213,21 @@ public class Controlador {
                     }
                 }
             }
+        }
+    }
+
+    @FXML
+    private void verHistorial() {
+        File historialFile = new File("logs/historial.txt");
+        if (historialFile.exists()) {
+            try {
+                Desktop.getDesktop().open(historialFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setContentText("No se ha encontrado ningún historial.");
         }
     }
 
