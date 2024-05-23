@@ -15,8 +15,8 @@ import javafx.stage.FileChooser;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +39,7 @@ public class Controlador {
     private List<ProgressBar> progressBars = new ArrayList<>();
     private List<Label> progressLabels = new ArrayList<>();
     private List<String> imagePaths = new ArrayList<>();
+    private List<Registro> historial = new ArrayList<>();
 
     @FXML
     public void initialize() {
@@ -142,6 +143,13 @@ public class Controlador {
                         break;
                 }
 
+                // Agregar registro al historial
+                String filePath = imagePaths.get(index);
+                String fileName = new File(filePath).getName();
+                Registro registro = new Registro(fileName, filePath, filter, LocalDateTime.now());
+                historial.add(registro);
+                guardarHistorialEnArchivo(registro);
+
                 return filteredImage;
             }
         };
@@ -154,6 +162,20 @@ public class Controlador {
 
         new Thread(task).start();
     }
+
+    private void guardarHistorialEnArchivo(Registro registro) {
+        // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
+        String rutaHistorial = "logs/historial.txt";
+
+        try (FileWriter fw = new FileWriter(rutaHistorial, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            out.println(registro.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     @FXML
     private void guardarImagenes() {
@@ -199,9 +221,9 @@ public class Controlador {
         }
     }
 
-
     @FXML
     private void salir() {
         System.exit(0);
     }
 }
+
