@@ -4,10 +4,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Registro {
-    private String nombreImagen;
-    private String rutaImagen;
-    private String filtroAplicado;
-    private LocalDateTime fechaHora;
+    private final String nombreImagen;
+    private final String rutaImagen;
+    private final String filtroAplicado;
+    private final LocalDateTime fechaHora;
 
     public Registro(String nombreImagen, String rutaImagen, String filtroAplicado, LocalDateTime fechaHora) {
         this.nombreImagen = nombreImagen;

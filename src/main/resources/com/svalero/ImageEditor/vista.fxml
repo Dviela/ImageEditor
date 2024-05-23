@@ -44,16 +44,12 @@
         <VBox spacing="10">
             <children>
                 <Label text="Filtros"/>
-                <ComboBox fx:id="choiceFiltros">
-                    <items>
-                        <FXCollections fx:factory="observableArrayList">
-                            <String fx:value="AumentoBrillo"/>
-                            <String fx:value="EscalaGrises"/>
-                            <String fx:value="InvertirColor"/>
-                            <String fx:value="Sepia"/>
-                        </FXCollections>
-                    </items>
-                </ComboBox>
+                <VBox fx:id="choiceFiltrosPane"> <!-- Contenedor para los checkboxes de filtros -->
+                    <CheckBox text="Aumento de Brillo"/>
+                    <CheckBox text="Escala de Grises"/>
+                    <CheckBox text="Invertir Color"/>
+                    <CheckBox text="Sepia"/>
+                </VBox>
                 <Button text="Aplicar Filtro" onAction="#aplicarFiltro"/>
             </children>
         </VBox>

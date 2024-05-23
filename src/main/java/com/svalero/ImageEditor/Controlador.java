@@ -7,6 +7,7 @@ import com.svalero.ImageEditor.filtros.Sepia;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -25,6 +26,7 @@ import java.util.List;
 
 public class Controlador {
 
+    public VBox choiceFiltrosPane;
     @FXML
     private ListView<String> listaImagenes;
     @FXML
@@ -105,8 +107,17 @@ public class Controlador {
 
     @FXML
     private void aplicarFiltro() {
-        String selectedFilter = choiceFiltros.getValue();
-        if (selectedFilter != null && !loadedImages.isEmpty()) {
+        List<CheckBox> selectedCheckBoxes = new ArrayList<>();
+        for (Node node : choiceFiltrosPane.getChildren()) {
+            if (node instanceof CheckBox) {
+                CheckBox checkBox = (CheckBox) node;
+                if (checkBox.isSelected()) {
+                    selectedCheckBoxes.add(checkBox);
+                }
+            }
+        }
+
+        if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab != null) {
                 int index = tabPane.getTabs().indexOf(selectedTab);
@@ -115,37 +126,57 @@ public class Controlador {
                 ProgressBar progressBar = progressBars.get(index);
                 Label progressLabel = progressLabels.get(index);
                 Image image = imageView.getImage();
-                filtroConProgreso(image, selectedFilter, index, progressBar, progressLabel, imageView);
+
+                // Llamar al método filtroConProgresoSecuencial con la lista de filtros seleccionados
+                filtroConProgresoSecuencial(image, selectedCheckBoxes, index, progressBar, progressLabel, imageView);
             }
         }
     }
 
-    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
+
+
+    private void filtroConProgresoSecuencial(Image initialImage, List<CheckBox> checkBoxes, int index, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
         Task<Image> task = new Task<>() {
             @Override
             protected Image call() throws Exception {
-                for (int progress = 0; progress <= 100; progress++) {
-                    updateProgress(progress, 100);
-                    updateMessage(progress + "%");
-                    Thread.sleep(50);
-                }
+                Image currentImage = initialImage;
+                int totalProgress = 0;
+                List<String> filtersApplied = new ArrayList<>();
 
-                Image filteredImage = switch (filter) {
-                    case "AumentoBrillo" -> new AumentoBrillo().aplicar(image);
-                    case "EscalaGrises" -> new EscalaGrises().aplicar(image);
-                    case "InvertirColor" -> new InvertirColor().aplicar(image);
-                    case "Sepia" -> new Sepia().aplicar(image);
-                    default -> null;
-                };
+                for (CheckBox checkBox : checkBoxes) {
+                    if (checkBox.isSelected()) {
+                        String filter = checkBox.getText();
+                        //TODO Arreglar barra de progreso
+                        for (int progress = 0; progress <= 100; progress++) {
+                            updateProgress(totalProgress + progress / checkBoxes.size(), 100);
+                            updateMessage(((totalProgress + progress / checkBoxes.size()) / checkBoxes.size()) + "%");
+                            Thread.sleep(50);
+                        }
+
+                        Image filteredImage = switch (filter) {
+                            case "Aumento de Brillo" -> new AumentoBrillo().aplicar(currentImage);
+                            case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
+                            case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
+                            case "Sepia" -> new Sepia().aplicar(currentImage);
+                            default -> null;
+                        };
+                        currentImage = filteredImage; // Actualizar la imagen para el siguiente filtro
+
+                        filtersApplied.add(filter);
+                    }
+                }
 
                 // Agregar registro al historial
                 String filePath = imagePaths.get(index);
                 String fileName = new File(filePath).getName();
-                Registro registro = new Registro(fileName, filePath, filter, LocalDateTime.now());
+                String filtersString = String.join(", ", filtersApplied);
+                Registro registro = new Registro(fileName, filePath, filtersString, LocalDateTime.now());
                 historial.add(registro);
                 guardarHistorialEnArchivo(registro);
 
-                return filteredImage;
+                totalProgress += 100 / checkBoxes.size();
+
+                return currentImage;
             }
         };
 
@@ -157,6 +188,8 @@ public class Controlador {
 
         new Thread(task).start();
     }
+
+
 
     private void guardarHistorialEnArchivo(Registro registro) {
         // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
