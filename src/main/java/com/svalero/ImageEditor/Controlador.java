@@ -94,23 +94,24 @@ public class Controlador {
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(300);
         imageView.setPreserveRatio(true);
-        ProgressBar progressBar = new ProgressBar(0);
-        Label progressLabel = new Label("0%");
-        progressBars.add(progressBar);
-        progressLabels.add(progressLabel);
 
-        VBox vBox = new VBox(imageView, progressBar, progressLabel);
+        VBox vBox = new VBox(imageView);
         Tab tab = new Tab(fileName, vBox);
         tabPane.getTabs().add(tab);
         tabPane.getSelectionModel().select(tab);
     }
+    private void agregarBarraDeProgreso(VBox vBox, ProgressBar progressBar, Label progressLabel) {
+        javafx.application.Platform.runLater(() -> {
+            vBox.getChildren().addAll(progressBar, progressLabel);
+        });
+    }
+
 
     @FXML
     private void aplicarFiltro() {
         List<CheckBox> selectedCheckBoxes = new ArrayList<>();
         for (Node node : choiceFiltrosPane.getChildren()) {
-            if (node instanceof CheckBox) {
-                CheckBox checkBox = (CheckBox) node;
+            if (node instanceof CheckBox checkBox) {
                 if (checkBox.isSelected()) {
                     selectedCheckBoxes.add(checkBox);
                 }
@@ -123,44 +124,58 @@ public class Controlador {
                 int index = tabPane.getTabs().indexOf(selectedTab);
                 VBox vBox = (VBox) selectedTab.getContent();
                 ImageView imageView = (ImageView) vBox.getChildren().get(0);
-                ProgressBar progressBar = progressBars.get(index);
-                Label progressLabel = progressLabels.get(index);
+
                 Image image = imageView.getImage();
 
                 // Llamar al método filtroConProgresoSecuencial con la lista de filtros seleccionados
-                filtroConProgresoSecuencial(image, selectedCheckBoxes, index, progressBar, progressLabel, imageView);
+                filtroConProgresoSecuencial(image, selectedCheckBoxes, index, imageView);
             }
         }
     }
 
 
 
-    private void filtroConProgresoSecuencial(Image initialImage, List<CheckBox> checkBoxes, int index, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
+
+    private void filtroConProgresoSecuencial(Image initialImage, List<CheckBox> checkBoxes, int index, ImageView imageView) {
+        VBox vBox = (VBox) imageView.getParent(); // Obtener el VBox contenedor
+
         Task<Image> task = new Task<>() {
             @Override
             protected Image call() throws Exception {
                 Image currentImage = initialImage;
-                int totalProgress = 0;
                 List<String> filtersApplied = new ArrayList<>();
 
                 for (CheckBox checkBox : checkBoxes) {
                     if (checkBox.isSelected()) {
                         String filter = checkBox.getText();
-                        //TODO Arreglar barra de progreso
+
+                        // Crear una nueva barra de progreso y etiqueta para cada filtro
+                        ProgressBar filterProgressBar = new ProgressBar(0);
+                        Label filterProgressLabel = new Label("0%");
+
+                        // Añadir la barra de progreso y la etiqueta usando el método separado
+                        agregarBarraDeProgreso(vBox, filterProgressBar, filterProgressLabel);
+
                         for (int progress = 0; progress <= 100; progress++) {
-                            updateProgress(totalProgress + progress / checkBoxes.size(), 100);
-                            updateMessage(((totalProgress + progress / checkBoxes.size()) / checkBoxes.size()) + "%");
+                            updateProgress(progress / 100.0, 1);
+                            updateMessage(progress + "%");
                             Thread.sleep(50);
+
+                            // Actualizar la barra de progreso específica del filtro
+                            int finalProgress = progress;
+                            javafx.application.Platform.runLater(() -> {
+                                filterProgressBar.setProgress(finalProgress / 100.0);
+                                filterProgressLabel.setText(finalProgress + "%");
+                            });
                         }
 
-                        Image filteredImage = switch (filter) {
+                        currentImage = switch (filter) {
                             case "Aumento de Brillo" -> new AumentoBrillo().aplicar(currentImage);
                             case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
                             case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
                             case "Sepia" -> new Sepia().aplicar(currentImage);
                             default -> null;
-                        };
-                        currentImage = filteredImage; // Actualizar la imagen para el siguiente filtro
+                        }; // Actualizar la imagen para el siguiente filtro
 
                         filtersApplied.add(filter);
                     }
@@ -174,21 +189,15 @@ public class Controlador {
                 historial.add(registro);
                 guardarHistorialEnArchivo(registro);
 
-                totalProgress += 100 / checkBoxes.size();
-
                 return currentImage;
             }
         };
-
-        progressBar.progressProperty().bind(task.progressProperty());
-        progressLabel.textProperty().bind(task.messageProperty());
 
         task.setOnSucceeded(e -> imageView.setImage(task.getValue()));
         task.setOnFailed(e -> task.getException().printStackTrace());
 
         new Thread(task).start();
     }
-
 
 
     private void guardarHistorialEnArchivo(Registro registro) {
