@@ -14,6 +14,7 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
 import javax.imageio.ImageIO;
@@ -33,6 +34,8 @@ public class Controlador {
     private ComboBox<String> choiceFiltros;
     @FXML
     private Button cargarImagenes;
+    @FXML
+    private Button cargarCarpeta;
     @FXML
     private Button aplicarFiltro;
     @FXML
@@ -68,6 +71,40 @@ public class Controlador {
             imagePaths.clear();
 
             for (File file : selectedFiles) {
+                String filePath = file.getAbsolutePath();
+                String fileName = file.getName();
+                listaImagenes.getItems().add(fileName);
+                Image image = new Image(file.toURI().toString());
+                loadedImages.add(image);
+                imagePaths.add(filePath);
+            }
+        }
+    }
+    @FXML
+    private void cargarCarpeta() {
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Seleccionar Carpeta de Imágenes");
+        File selectedDirectory = directoryChooser.showDialog(null);
+
+        if (selectedDirectory != null) {
+            cargarImagenesDesdeCarpeta(selectedDirectory);
+        }
+    }
+    private void cargarImagenesDesdeCarpeta(File directory) {
+        File[] files = directory.listFiles((dir, name) -> {
+            String lowerCaseName = name.toLowerCase();
+            return lowerCaseName.endsWith(".png") || lowerCaseName.endsWith(".jpg") || lowerCaseName.endsWith(".jpeg") || lowerCaseName.endsWith(".gif");
+        });
+
+        if (files != null) {
+            listaImagenes.getItems().clear();
+            tabPane.getTabs().clear();
+            loadedImages.clear();
+            progressBars.clear();
+            progressLabels.clear();
+            imagePaths.clear();
+
+            for (File file : files) {
                 String filePath = file.getAbsolutePath();
                 String fileName = file.getName();
                 listaImagenes.getItems().add(fileName);
@@ -240,7 +277,7 @@ public class Controlador {
                     fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
                     fileChooser.setInitialFileName(newFileName);
 
-                    // Establecer el directorio inicial del cuadro de diálogo de guardar
+                    // Ruta inicial como ruta de guardado predeterminada
                     fileChooser.setInitialDirectory(initialDirectory);
 
                     File file = fileChooser.showSaveDialog(null);

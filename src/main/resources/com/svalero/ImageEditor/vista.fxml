@@ -13,6 +13,7 @@
         <MenuBar>
             <Menu text="Archivo">
                 <MenuItem text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <MenuItem text="Cargar Imágenes" onAction="#cargarCarpeta"/>
                 <MenuItem text="Guardar Imágenes" onAction="#guardarImagenes"/>
                 <SeparatorMenuItem/>
                 <MenuItem text="Salir" onAction="#salir"/>
@@ -29,7 +30,9 @@
             <children>
                 <Label text="Imágenes:"/>
                 <ListView fx:id="listaImagenes"/>
-                <Button text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <Button id="cargarImagen" text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <Button fx:id="cargarCarpeta" text="Cargar carpeta" onAction="#cargarCarpeta" />
+
             </children>
         </VBox>
     </left>
