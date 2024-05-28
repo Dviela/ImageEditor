@@ -24,7 +24,6 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Controlador {
 
@@ -138,6 +137,7 @@ public class Controlador {
         tabPane.getTabs().add(tab);
         tabPane.getSelectionModel().select(tab);
     }
+
     private void agregarBarraDeProgreso(VBox vBox, ProgressBar progressBar, Label progressLabel) {
         javafx.application.Platform.runLater(() -> {
             vBox.getChildren().addAll(progressBar, progressLabel);
@@ -255,55 +255,82 @@ public class Controlador {
 
 
     @FXML
+// Métodos para guardar las imágenes
     private void guardarImagenes() {
+        // Verificar si hay imágenes cargadas
         if (!loadedImages.isEmpty()) {
-            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-            if (selectedTab != null) {
-                VBox vBox = (VBox) selectedTab.getContent();
-                ImageView imageView = (ImageView) vBox.getChildren().get(0);
-                Image currentImage = imageView.getImage();
+            // Obtener la pestaña seleccionada en el TabPane
+            Tab pestanaSeleccionada = tabPane.getSelectionModel().getSelectedItem();
+            if (pestanaSeleccionada != null) {
+                // Obtener el contenedor VBox y la imagen actual de la pestaña
+                VBox contenedorVBox = (VBox) pestanaSeleccionada.getContent();
+                ImageView imagenActual = (ImageView) contenedorVBox.getChildren().get(0);
+                Image imagen = imagenActual.getImage();
 
-                // Obtener los filtros aplicados a esta imagen desde el mapa
-                List<String> appliedFilters = filtrosAplicados.getOrDefault(currentImage, new ArrayList<>());
+                // Obtener los filtros aplicados a esta imagen
+                List<String> filtrosAplicados = obtenerFiltrosAplicados(imagen);
 
-                if (!appliedFilters.isEmpty()) {
-                    FileChooser fileChooser = new FileChooser();
-                    fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
-
-                    // Obtener el nombre original del archivo sin la extensión
-                    String originalFileName = selectedTab.getText();
-                    String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-                    String newFileName = String.join("_", appliedFilters) + "_" + fileNameWithoutExtension + ".png";
-
-                    fileChooser.setInitialFileName(newFileName);
-
-                    // Establecer el directorio inicial al del archivo original
-                    File initialDirectory = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex())).getParentFile();
-                    fileChooser.setInitialDirectory(initialDirectory);
-
-                    File file = fileChooser.showSaveDialog(null);
-
-                    if (file != null) {
-                        try {
-                            BufferedImage bufferedImage = SwingFXUtils.fromFXImage(currentImage, null);
-                            ImageIO.write(bufferedImage, "png", file);
-                        } catch (IOException ex) {
-                            ex.printStackTrace();
-                        }
+                // Verificar si se han aplicado filtros a la imagen
+                if (!filtrosAplicados.isEmpty()) {
+                    // Mostrar ventana para guardar el archivo
+                    File archivoSeleccionado = mostrarVentanaGuardardo(pestanaSeleccionada, filtrosAplicados);
+                    if (archivoSeleccionado != null) {
+                        // Guardar la imagen en el archivo seleccionado
+                        guardarEnRuta(imagen, archivoSeleccionado);
                     }
                 } else {
-                    // Mostrar un mensaje de error si no se ha seleccionado ningún filtro
-                    Alert alert = new Alert(Alert.AlertType.ERROR);
-                    alert.setContentText("Por favor, seleccione al menos un filtro antes de guardar la imagen.");
-                    alert.showAndWait();
+                    // Mostrar una alerta de error si no se han seleccionado filtros
+                    mostrarAlerta("Por favor, seleccione al menos un filtro antes de guardar la imagen.");
                 }
             }
         }
     }
 
+    // Método para obtener los filtros aplicados a una imagen
+    private List<String> obtenerFiltrosAplicados(Image imagen) {
+        return filtrosAplicados.getOrDefault(imagen, new ArrayList<>());
+    }
+
+    // Método para mostrar el diálogo de guardar archivo
+    private File mostrarVentanaGuardardo(Tab pestanaSeleccionada, List<String> filtrosAplicados) {
+        // Crear un selector de archivo y configurar filtros y nombre inicial
+        FileChooser selectorArchivo = new FileChooser();
+        selectorArchivo.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos PNG (*.png)", "*.png"));
+
+        String nombreArchivoOriginal = pestanaSeleccionada.getText();
+        String nombreArchivoSinExtension = nombreArchivoOriginal.substring(0, nombreArchivoOriginal.lastIndexOf('.'));
+        String nuevoNombreArchivo = String.join("_", filtrosAplicados) + "_" + nombreArchivoSinExtension + ".png";
+
+        selectorArchivo.setInitialFileName(nuevoNombreArchivo);
+
+        // Establecer la ruta de la imagen original como predeterminada
+        File directorioInicial = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex())).getParentFile();
+        selectorArchivo.setInitialDirectory(directorioInicial);
+
+        // Mostrar el diálogo de guardar y devolver el archivo seleccionado
+        return selectorArchivo.showSaveDialog(null);
+    }
+
+    // Método para guardar la imagen donde deseemos
+    private void guardarEnRuta(Image imagen, File ruta) {
+        // Convertir la imagen a BufferedImage y guardarla en el archivo
+        try {
+            BufferedImage imagenBuffered = SwingFXUtils.fromFXImage(imagen, null);
+            ImageIO.write(imagenBuffered, "png", ruta);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // Método para mostrar una alerta de error
+    private void mostrarAlerta(String mensaje) {
+        Alert alerta = new Alert(Alert.AlertType.ERROR);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
+    }
 
 
-
+    //Método para ver archivo historial.txt desde la aplicación
     @FXML
     private void verHistorial() {
         File historialFile = new File("logs/historial.txt");
