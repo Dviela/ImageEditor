@@ -260,14 +260,21 @@ public class Controlador {
                 ImageView imageView = (ImageView) vBox.getChildren().get(0);
                 Image originalImage = imageView.getImage();
 
-                String selectedFilter = choiceFiltros.getValue();
-                String selectedFilePath = listaImagenes.getSelectionModel().getSelectedItem();
+                List<String> selectedFilters = new ArrayList<>();
+                for (Node node : choiceFiltrosPane.getChildren()) {
+                    if (node instanceof CheckBox) {
+                        CheckBox checkBox = (CheckBox) node;
+                        if (checkBox.isSelected()) {
+                            selectedFilters.add(checkBox.getText());
+                        }
+                    }
+                }
 
-                if (selectedFilePath != null && selectedFilter != null) {
+                if (!selectedFilters.isEmpty()) {
                     File originalFile = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex()));
                     String originalFileName = originalFile.getName();
                     String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-                    String newFileName = selectedFilter + "_" + fileNameWithoutExtension + ".png";
+                    String newFileName = String.join("_", selectedFilters) + "_" + fileNameWithoutExtension + ".png";
 
                     // Obtener la ruta del directorio de la imagen original
                     String originalImagePath = originalFile.getParent();
@@ -290,10 +297,16 @@ public class Controlador {
                             ex.printStackTrace();
                         }
                     }
+                } else {
+                    // Mostrar un mensaje de error si no se ha seleccionado ningún filtro
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setContentText("Por favor, seleccione al menos un filtro antes de guardar la imagen.");
+                    alert.showAndWait();
                 }
             }
         }
     }
+
 
     @FXML
     private void verHistorial() {
