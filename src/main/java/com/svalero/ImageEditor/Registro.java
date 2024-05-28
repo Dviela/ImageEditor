@@ -4,10 +4,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 public class Registro {
-    private String nombreImagen;
-    private String rutaImagen;
-    private String filtroAplicado;
-    private LocalDateTime fechaHora;
+    private final String nombreImagen;
+    private final String rutaImagen;
+    private final String filtroAplicado;
+    private final LocalDateTime fechaHora;
 
     public Registro(String nombreImagen, String rutaImagen, String filtroAplicado, LocalDateTime fechaHora) {
         this.nombreImagen = nombreImagen;
@@ -18,11 +18,11 @@ public class Registro {
 
     @Override
     public String toString() {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        return "Nombre de la imagen: " + nombreImagen +
-                ", Ruta de la imagen: " + rutaImagen +
-                ", Filtro aplicado: " + filtroAplicado +
-                ", Fecha y hora: " + fechaHora.format(formatter);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy/HH:mm");
+        return "NOMBRE: " + nombreImagen +
+                ", RUTA: " + rutaImagen +
+                ", FILTRO: " + filtroAplicado +
+                ", FECHA/HORA: " + fechaHora.format(formatter);
     }
 
 

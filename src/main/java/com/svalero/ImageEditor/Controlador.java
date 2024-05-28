@@ -7,12 +7,14 @@ import com.svalero.ImageEditor.filtros.Sepia;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 
 import javax.imageio.ImageIO;
@@ -25,12 +27,15 @@ import java.util.List;
 
 public class Controlador {
 
+    public VBox choiceFiltrosPane;
     @FXML
     private ListView<String> listaImagenes;
     @FXML
     private ComboBox<String> choiceFiltros;
     @FXML
     private Button cargarImagenes;
+    @FXML
+    private Button cargarCarpeta;
     @FXML
     private Button aplicarFiltro;
     @FXML
@@ -75,6 +80,40 @@ public class Controlador {
             }
         }
     }
+    @FXML
+    private void cargarCarpeta() {
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Seleccionar Carpeta de Imágenes");
+        File selectedDirectory = directoryChooser.showDialog(null);
+
+        if (selectedDirectory != null) {
+            cargarImagenesDesdeCarpeta(selectedDirectory);
+        }
+    }
+    private void cargarImagenesDesdeCarpeta(File directory) {
+        File[] files = directory.listFiles((dir, name) -> {
+            String lowerCaseName = name.toLowerCase();
+            return lowerCaseName.endsWith(".png") || lowerCaseName.endsWith(".jpg") || lowerCaseName.endsWith(".jpeg") || lowerCaseName.endsWith(".gif");
+        });
+
+        if (files != null) {
+            listaImagenes.getItems().clear();
+            tabPane.getTabs().clear();
+            loadedImages.clear();
+            progressBars.clear();
+            progressLabels.clear();
+            imagePaths.clear();
+
+            for (File file : files) {
+                String filePath = file.getAbsolutePath();
+                String fileName = file.getName();
+                listaImagenes.getItems().add(fileName);
+                Image image = new Image(file.toURI().toString());
+                loadedImages.add(image);
+                imagePaths.add(filePath);
+            }
+        }
+    }
 
     @FXML
     private void mostrarImagenSeleccionada() {
@@ -92,71 +131,111 @@ public class Controlador {
         ImageView imageView = new ImageView(image);
         imageView.setFitWidth(300);
         imageView.setPreserveRatio(true);
-        ProgressBar progressBar = new ProgressBar(0);
-        Label progressLabel = new Label("0%");
-        progressBars.add(progressBar);
-        progressLabels.add(progressLabel);
 
-        VBox vBox = new VBox(imageView, progressBar, progressLabel);
+        VBox vBox = new VBox(imageView);
         Tab tab = new Tab(fileName, vBox);
         tabPane.getTabs().add(tab);
         tabPane.getSelectionModel().select(tab);
     }
+    private void agregarBarraDeProgreso(VBox vBox, ProgressBar progressBar, Label progressLabel) {
+        javafx.application.Platform.runLater(() -> {
+            vBox.getChildren().addAll(progressBar, progressLabel);
+        });
+    }
+
 
     @FXML
     private void aplicarFiltro() {
-        String selectedFilter = choiceFiltros.getValue();
-        if (selectedFilter != null && !loadedImages.isEmpty()) {
+        List<CheckBox> selectedCheckBoxes = new ArrayList<>();
+        for (Node node : choiceFiltrosPane.getChildren()) {
+            if (node instanceof CheckBox checkBox) {
+                if (checkBox.isSelected()) {
+                    selectedCheckBoxes.add(checkBox);
+                }
+            }
+        }
+
+        if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab != null) {
                 int index = tabPane.getTabs().indexOf(selectedTab);
                 VBox vBox = (VBox) selectedTab.getContent();
                 ImageView imageView = (ImageView) vBox.getChildren().get(0);
-                ProgressBar progressBar = progressBars.get(index);
-                Label progressLabel = progressLabels.get(index);
+
                 Image image = imageView.getImage();
-                filtroConProgreso(image, selectedFilter, index, progressBar, progressLabel, imageView);
+
+                // Llamar al método filtroConProgresoSecuencial con la lista de filtros seleccionados
+                filtroConProgresoSecuencial(image, selectedCheckBoxes, index, imageView);
             }
         }
     }
 
-    private void filtroConProgreso(Image image, String filter, int index, ProgressBar progressBar, Label progressLabel, ImageView imageView) {
+
+
+
+    private void filtroConProgresoSecuencial(Image initialImage, List<CheckBox> checkBoxes, int index, ImageView imageView) {
+        VBox vBox = (VBox) imageView.getParent(); // Obtener el VBox contenedor
+
         Task<Image> task = new Task<>() {
             @Override
             protected Image call() throws Exception {
-                for (int progress = 0; progress <= 100; progress++) {
-                    updateProgress(progress, 100);
-                    updateMessage(progress + "%");
-                    Thread.sleep(50);
-                }
+                Image currentImage = initialImage;
+                List<String> filtersApplied = new ArrayList<>();
 
-                Image filteredImage = switch (filter) {
-                    case "AumentoBrillo" -> new AumentoBrillo().aplicar(image);
-                    case "EscalaGrises" -> new EscalaGrises().aplicar(image);
-                    case "InvertirColor" -> new InvertirColor().aplicar(image);
-                    case "Sepia" -> new Sepia().aplicar(image);
-                    default -> null;
-                };
+                for (CheckBox checkBox : checkBoxes) {
+                    if (checkBox.isSelected()) {
+                        String filter = checkBox.getText();
+
+                        // Crear una nueva barra de progreso y etiqueta para cada filtro
+                        ProgressBar filterProgressBar = new ProgressBar(0);
+                        Label filterProgressLabel = new Label("0%");
+
+                        // Añadir la barra de progreso y la etiqueta usando el método separado
+                        agregarBarraDeProgreso(vBox, filterProgressBar, filterProgressLabel);
+
+                        for (int progress = 0; progress <= 100; progress++) {
+                            updateProgress(progress / 100.0, 1);
+                            updateMessage(progress + "%");
+                            Thread.sleep(50);
+
+                            // Actualizar la barra de progreso específica del filtro
+                            int finalProgress = progress;
+                            javafx.application.Platform.runLater(() -> {
+                                filterProgressBar.setProgress(finalProgress / 100.0);
+                                filterProgressLabel.setText(finalProgress + "%");
+                            });
+                        }
+
+                        currentImage = switch (filter) {
+                            case "Aumento de Brillo" -> new AumentoBrillo().aplicar(currentImage);
+                            case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
+                            case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
+                            case "Sepia" -> new Sepia().aplicar(currentImage);
+                            default -> null;
+                        }; // Actualizar la imagen para el siguiente filtro
+
+                        filtersApplied.add(filter);
+                    }
+                }
 
                 // Agregar registro al historial
                 String filePath = imagePaths.get(index);
                 String fileName = new File(filePath).getName();
-                Registro registro = new Registro(fileName, filePath, filter, LocalDateTime.now());
+                String filtersString = String.join(", ", filtersApplied);
+                Registro registro = new Registro(fileName, filePath, filtersString, LocalDateTime.now());
                 historial.add(registro);
                 guardarHistorialEnArchivo(registro);
 
-                return filteredImage;
+                return currentImage;
             }
         };
-
-        progressBar.progressProperty().bind(task.progressProperty());
-        progressLabel.textProperty().bind(task.messageProperty());
 
         task.setOnSucceeded(e -> imageView.setImage(task.getValue()));
         task.setOnFailed(e -> task.getException().printStackTrace());
 
         new Thread(task).start();
     }
+
 
     private void guardarHistorialEnArchivo(Registro registro) {
         // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
@@ -198,7 +277,7 @@ public class Controlador {
                     fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
                     fileChooser.setInitialFileName(newFileName);
 
-                    // Establecer el directorio inicial del cuadro de diálogo de guardar
+                    // Ruta inicial como ruta de guardado predeterminada
                     fileChooser.setInitialDirectory(initialDirectory);
 
                     File file = fileChooser.showSaveDialog(null);

@@ -13,6 +13,7 @@
         <MenuBar>
             <Menu text="Archivo">
                 <MenuItem text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <MenuItem text="Cargar Carpeta" onAction="#cargarCarpeta"/>
                 <MenuItem text="Guardar Imágenes" onAction="#guardarImagenes"/>
                 <SeparatorMenuItem/>
                 <MenuItem text="Salir" onAction="#salir"/>
@@ -29,7 +30,9 @@
             <children>
                 <Label text="Imágenes:"/>
                 <ListView fx:id="listaImagenes"/>
-                <Button text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <Button id="cargarImagen" text="Cargar Imágenes" onAction="#cargarImagenes"/>
+                <Button fx:id="cargarCarpeta" text="Cargar carpeta" onAction="#cargarCarpeta" />
+
             </children>
         </VBox>
     </left>
@@ -44,16 +47,12 @@
         <VBox spacing="10">
             <children>
                 <Label text="Filtros"/>
-                <ComboBox fx:id="choiceFiltros">
-                    <items>
-                        <FXCollections fx:factory="observableArrayList">
-                            <String fx:value="AumentoBrillo"/>
-                            <String fx:value="EscalaGrises"/>
-                            <String fx:value="InvertirColor"/>
-                            <String fx:value="Sepia"/>
-                        </FXCollections>
-                    </items>
-                </ComboBox>
+                <VBox fx:id="choiceFiltrosPane"> <!-- Contenedor para los checkboxes de filtros -->
+                    <CheckBox text="Aumento de Brillo"/>
+                    <CheckBox text="Escala de Grises"/>
+                    <CheckBox text="Invertir Color"/>
+                    <CheckBox text="Sepia"/>
+                </VBox>
                 <Button text="Aplicar Filtro" onAction="#aplicarFiltro"/>
             </children>
         </VBox>
