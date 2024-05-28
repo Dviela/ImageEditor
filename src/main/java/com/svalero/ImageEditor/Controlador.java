@@ -138,45 +138,77 @@ public class Controlador {
         tabPane.getSelectionModel().select(tab);
     }
 
+//Metodos para el filtrado de imagenes
+    @FXML
+    private void aplicarFiltro() {
+        List<CheckBox> selectedCheckBoxes = obtenerCheckBoxesSeleccionados();
+
+        if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
+            Tab selectedTab = obtenerPestanaSeleccionada();
+            if (selectedTab != null) {
+                int index = obtenerIndicePestanaSeleccionada();
+                ImageView imageView = obtenerImageViewDesdePestana(selectedTab);
+
+                Image image = imageView.getImage();
+                imagenActualEnDeshacer(image);
+                limpiarPilaRehacer();
+
+                aplicarFiltrosConProgreso(image, selectedCheckBoxes, index, imageView);
+            }
+        }
+    }
+    private void aplicarFiltrosConProgreso(Image initialImage, List<CheckBox> checkBoxes, int index, ImageView imageView) {
+        VBox vBox = obtenerVBoxContenedor(imageView);
+
+        Task<Image> task = crearTareaFiltro(initialImage, checkBoxes, imageView, vBox, index);
+
+        task.setOnSucceeded(e -> imageView.setImage(task.getValue()));
+        task.setOnFailed(e -> task.getException().printStackTrace());
+
+        new Thread(task).start();
+    }
+    private List<CheckBox> obtenerCheckBoxesSeleccionados() {
+        List<CheckBox> selectedCheckBoxes = new ArrayList<>();
+        for (Node node : choiceFiltrosPane.getChildren()) {
+            if (node instanceof CheckBox checkBox && checkBox.isSelected()) {
+                selectedCheckBoxes.add(checkBox);
+            }
+        }
+        return selectedCheckBoxes;
+    }
     private void agregarBarraDeProgreso(VBox vBox, ProgressBar progressBar, Label progressLabel) {
         javafx.application.Platform.runLater(() -> {
             vBox.getChildren().addAll(progressBar, progressLabel);
         });
     }
 
-
-    @FXML
-    private void aplicarFiltro() {
-        List<CheckBox> selectedCheckBoxes = new ArrayList<>();
-        for (Node node : choiceFiltrosPane.getChildren()) {
-            if (node instanceof CheckBox checkBox) {
-                if (checkBox.isSelected()) {
-                    selectedCheckBoxes.add(checkBox);
-                }
-            }
-        }
-
-        if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
-            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-            if (selectedTab != null) {
-                int index = tabPane.getTabs().indexOf(selectedTab);
-                VBox vBox = (VBox) selectedTab.getContent();
-                ImageView imageView = (ImageView) vBox.getChildren().get(0);
-
-                Image image = imageView.getImage();
-                undoStack.push(image); // Guardar la imagen actual en la pila de deshacer
-                redoStack.clear(); // Limpiar la pila de rehacer
-
-                // Llamar al método filtroConProgresoSecuencial con la lista de filtros seleccionados
-                filtroConProgresoSecuencial(image, selectedCheckBoxes, index, imageView);
-            }
-        }
+    private Tab obtenerPestanaSeleccionada() {
+        return tabPane.getSelectionModel().getSelectedItem();
     }
 
-    private void filtroConProgresoSecuencial(Image initialImage, List<CheckBox> checkBoxes, int index, ImageView imageView) {
-        VBox vBox = (VBox) imageView.getParent(); // Obtener el VBox contenedor
+    private int obtenerIndicePestanaSeleccionada() {
+        return tabPane.getTabs().indexOf(obtenerPestanaSeleccionada());
+    }
 
-        Task<Image> task = new Task<>() {
+    private ImageView obtenerImageViewDesdePestana(Tab tab) {
+        VBox vBox = (VBox) tab.getContent();
+        return (ImageView) vBox.getChildren().get(0);
+    }
+
+    private void imagenActualEnDeshacer(Image image) {
+        undoStack.push(image);
+    }
+
+    private void limpiarPilaRehacer() {
+        redoStack.clear();
+    }
+
+    private VBox obtenerVBoxContenedor(ImageView imageView) {
+        return (VBox) imageView.getParent();
+    }
+
+    private Task<Image> crearTareaFiltro(Image initialImage, List<CheckBox> checkBoxes, ImageView imageView, VBox vBox, int index) {
+        return new Task<>() {
             @Override
             protected Image call() throws Exception {
                 Image currentImage = initialImage;
@@ -185,12 +217,8 @@ public class Controlador {
                 for (CheckBox checkBox : checkBoxes) {
                     if (checkBox.isSelected()) {
                         String filter = checkBox.getText();
-
-                        // Crear una nueva barra de progreso
                         ProgressBar filterProgressBar = new ProgressBar(0);
                         Label filterProgressLabel = new Label("0%");
-
-                        // Añadir la barra de progreso usando el método agregarBarraDeProgreso
                         agregarBarraDeProgreso(vBox, filterProgressBar, filterProgressLabel);
 
                         for (int progress = 0; progress <= 100; progress++) {
@@ -198,7 +226,6 @@ public class Controlador {
                             updateMessage(progress + "%");
                             Thread.sleep(50);
 
-                            // Actualizar la barra de progreso específica del filtro
                             int finalProgress = progress;
                             javafx.application.Platform.runLater(() -> {
                                 filterProgressBar.setProgress(finalProgress / 100.0);
@@ -212,32 +239,25 @@ public class Controlador {
                             case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
                             case "Sepia" -> new Sepia().aplicar(currentImage);
                             default -> null;
-                        }; // Actualizar la imagen para el siguiente filtro
-
+                        };
                         filtersApplied.add(filter);
                     }
                 }
 
-                // Agregar registro al historial
                 String filePath = imagePaths.get(index);
                 String fileName = new File(filePath).getName();
                 String filtersString = String.join(", ", filtersApplied);
                 Registro registro = new Registro(fileName, filePath, filtersString, LocalDateTime.now());
                 historial.add(registro);
                 guardarHistorialEnArchivo(registro);
-
-                // Actualizar filtrosAplicados
                 filtrosAplicados.put(currentImage, filtersApplied);
 
                 return currentImage;
             }
         };
-
-        task.setOnSucceeded(e -> imageView.setImage(task.getValue()));
-        task.setOnFailed(e -> task.getException().printStackTrace());
-
-        new Thread(task).start();
     }
+
+
 
 
     private void guardarHistorialEnArchivo(Registro registro) {
@@ -280,7 +300,7 @@ public class Controlador {
                     }
                 } else {
                     // Mostrar una alerta de error si no se han seleccionado filtros
-                    mostrarAlerta("Por favor, seleccione al menos un filtro antes de guardar la imagen.");
+                    mostrarAlerta("Por favor, debe aplicar al menos un filtro antes de guardar la imagen.");
                 }
             }
         }
