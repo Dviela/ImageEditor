@@ -24,6 +24,7 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 public class Controlador {
 
@@ -48,6 +49,8 @@ public class Controlador {
     private List<Label> progressLabels = new ArrayList<>();
     private List<String> imagePaths = new ArrayList<>();
     private List<Registro> historial = new ArrayList<>();
+    private Stack<Image> undoStack = new Stack<>();
+    private Stack<Image> redoStack = new Stack<>();
 
     @FXML
     public void initialize() {
@@ -163,6 +166,8 @@ public class Controlador {
                 ImageView imageView = (ImageView) vBox.getChildren().get(0);
 
                 Image image = imageView.getImage();
+                undoStack.push(image); // Guardar la imagen actual en la pila de deshacer
+                redoStack.clear(); // Limpiar la pila de rehacer
 
                 // Llamar al método filtroConProgresoSecuencial con la lista de filtros seleccionados
                 filtroConProgresoSecuencial(image, selectedCheckBoxes, index, imageView);
@@ -327,5 +332,41 @@ public class Controlador {
     private void salir() {
         System.exit(0);
     }
+
+
+    @FXML
+    private void deshacerCambios() {
+        if (!undoStack.isEmpty()) {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                VBox vBox = (VBox) selectedTab.getContent();
+                ImageView imageView = (ImageView) vBox.getChildren().get(0);
+
+                Image currentImage = imageView.getImage();
+                redoStack.push(currentImage); // Guardar la imagen actual en la pila de rehacer
+
+                Image previousImage = undoStack.pop(); // Recuperar la imagen anterior
+                imageView.setImage(previousImage); // Establecer la imagen anterior
+            }
+        }
+    }
+
+    @FXML
+    private void rehacerCambios() {
+        if (!redoStack.isEmpty()) {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                VBox vBox = (VBox) selectedTab.getContent();
+                ImageView imageView = (ImageView) vBox.getChildren().get(0);
+
+                Image currentImage = imageView.getImage();
+                undoStack.push(currentImage); // Guardar la imagen actual en la pila de deshacer
+
+                Image nextImage = redoStack.pop(); // Recuperar la imagen siguiente
+                imageView.setImage(nextImage); // Establecer la imagen siguiente
+            }
+        }
+    }
+
 }
 

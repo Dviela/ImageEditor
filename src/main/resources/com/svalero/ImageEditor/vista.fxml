@@ -20,6 +20,8 @@
             </Menu>
             <Menu text="Edición">
                 <MenuItem text="Aplicar Filtro" onAction="#aplicarFiltro"/>
+                <MenuItem text="Deshacer Cambios" onAction="#deshacerCambios"/>
+                <MenuItem text="Rehacer Cambios" onAction="#rehacerCambios"/>
             </Menu>
         </MenuBar>
     </top>
