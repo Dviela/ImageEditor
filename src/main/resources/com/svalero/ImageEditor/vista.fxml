@@ -13,7 +13,7 @@
         <MenuBar>
             <Menu text="Archivo">
                 <MenuItem text="Cargar Imágenes" onAction="#cargarImagenes"/>
-                <MenuItem text="Cargar Imágenes" onAction="#cargarCarpeta"/>
+                <MenuItem text="Cargar Carpeta" onAction="#cargarCarpeta"/>
                 <MenuItem text="Guardar Imágenes" onAction="#guardarImagenes"/>
                 <SeparatorMenuItem/>
                 <MenuItem text="Salir" onAction="#salir"/>
