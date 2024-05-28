@@ -22,9 +22,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.*;
 import java.util.List;
-import java.util.Stack;
+import java.util.stream.Collectors;
 
 public class Controlador {
 
@@ -44,13 +44,14 @@ public class Controlador {
     @FXML
     private TabPane tabPane;
 
-    private List<Image> loadedImages = new ArrayList<>();
-    private List<ProgressBar> progressBars = new ArrayList<>();
-    private List<Label> progressLabels = new ArrayList<>();
-    private List<String> imagePaths = new ArrayList<>();
-    private List<Registro> historial = new ArrayList<>();
-    private Stack<Image> undoStack = new Stack<>();
-    private Stack<Image> redoStack = new Stack<>();
+    private final List<Image> loadedImages = new ArrayList<>();
+    private final List<ProgressBar> progressBars = new ArrayList<>();
+    private final List<Label> progressLabels = new ArrayList<>();
+    private final List<String> imagePaths = new ArrayList<>();
+    private final List<Registro> historial = new ArrayList<>();
+    private final Stack<Image> undoStack = new Stack<>();
+    private final Stack<Image> redoStack = new Stack<>();
+    private Map<Image, List<String>> filtrosAplicados = new HashMap<>();
 
     @FXML
     public void initialize() {
@@ -66,23 +67,11 @@ public class Controlador {
         List<File> selectedFiles = fileChooser.showOpenMultipleDialog(null);
 
         if (selectedFiles != null) {
-            listaImagenes.getItems().clear();
-            tabPane.getTabs().clear();
-            loadedImages.clear();
-            progressBars.clear();
-            progressLabels.clear();
-            imagePaths.clear();
-
-            for (File file : selectedFiles) {
-                String filePath = file.getAbsolutePath();
-                String fileName = file.getName();
-                listaImagenes.getItems().add(fileName);
-                Image image = new Image(file.toURI().toString());
-                loadedImages.add(image);
-                imagePaths.add(filePath);
-            }
+            limpiarContenido();
+            cargarArchivosSeleccionados(selectedFiles);
         }
     }
+
     @FXML
     private void cargarCarpeta() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -90,9 +79,31 @@ public class Controlador {
         File selectedDirectory = directoryChooser.showDialog(null);
 
         if (selectedDirectory != null) {
+            limpiarContenido();
             cargarImagenesDesdeCarpeta(selectedDirectory);
         }
     }
+
+    private void limpiarContenido() {
+        listaImagenes.getItems().clear();
+        tabPane.getTabs().clear();
+        loadedImages.clear();
+        progressBars.clear();
+        progressLabels.clear();
+        imagePaths.clear();
+    }
+
+    private void cargarArchivosSeleccionados(List<File> files) {
+        for (File file : files) {
+            String filePath = file.getAbsolutePath();
+            String fileName = file.getName();
+            listaImagenes.getItems().add(fileName);
+            Image image = new Image(file.toURI().toString());
+            loadedImages.add(image);
+            imagePaths.add(filePath);
+        }
+    }
+
     private void cargarImagenesDesdeCarpeta(File directory) {
         File[] files = directory.listFiles((dir, name) -> {
             String lowerCaseName = name.toLowerCase();
@@ -100,23 +111,10 @@ public class Controlador {
         });
 
         if (files != null) {
-            listaImagenes.getItems().clear();
-            tabPane.getTabs().clear();
-            loadedImages.clear();
-            progressBars.clear();
-            progressLabels.clear();
-            imagePaths.clear();
-
-            for (File file : files) {
-                String filePath = file.getAbsolutePath();
-                String fileName = file.getName();
-                listaImagenes.getItems().add(fileName);
-                Image image = new Image(file.toURI().toString());
-                loadedImages.add(image);
-                imagePaths.add(filePath);
-            }
+            cargarArchivosSeleccionados(Arrays.asList(files));
         }
     }
+
 
     @FXML
     private void mostrarImagenSeleccionada() {
@@ -175,9 +173,6 @@ public class Controlador {
         }
     }
 
-
-
-
     private void filtroConProgresoSecuencial(Image initialImage, List<CheckBox> checkBoxes, int index, ImageView imageView) {
         VBox vBox = (VBox) imageView.getParent(); // Obtener el VBox contenedor
 
@@ -191,11 +186,11 @@ public class Controlador {
                     if (checkBox.isSelected()) {
                         String filter = checkBox.getText();
 
-                        // Crear una nueva barra de progreso y etiqueta para cada filtro
+                        // Crear una nueva barra de progreso
                         ProgressBar filterProgressBar = new ProgressBar(0);
                         Label filterProgressLabel = new Label("0%");
 
-                        // Añadir la barra de progreso y la etiqueta usando el método separado
+                        // Añadir la barra de progreso usando el método agregarBarraDeProgreso
                         agregarBarraDeProgreso(vBox, filterProgressBar, filterProgressLabel);
 
                         for (int progress = 0; progress <= 100; progress++) {
@@ -231,6 +226,9 @@ public class Controlador {
                 historial.add(registro);
                 guardarHistorialEnArchivo(registro);
 
+                // Actualizar filtrosAplicados
+                filtrosAplicados.put(currentImage, filtersApplied);
+
                 return currentImage;
             }
         };
@@ -263,40 +261,31 @@ public class Controlador {
             if (selectedTab != null) {
                 VBox vBox = (VBox) selectedTab.getContent();
                 ImageView imageView = (ImageView) vBox.getChildren().get(0);
-                Image originalImage = imageView.getImage();
+                Image currentImage = imageView.getImage();
 
-                List<String> selectedFilters = new ArrayList<>();
-                for (Node node : choiceFiltrosPane.getChildren()) {
-                    if (node instanceof CheckBox) {
-                        CheckBox checkBox = (CheckBox) node;
-                        if (checkBox.isSelected()) {
-                            selectedFilters.add(checkBox.getText());
-                        }
-                    }
-                }
+                // Obtener los filtros aplicados a esta imagen desde el mapa
+                List<String> appliedFilters = filtrosAplicados.getOrDefault(currentImage, new ArrayList<>());
 
-                if (!selectedFilters.isEmpty()) {
-                    File originalFile = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex()));
-                    String originalFileName = originalFile.getName();
-                    String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-                    String newFileName = String.join("_", selectedFilters) + "_" + fileNameWithoutExtension + ".png";
-
-                    // Obtener la ruta del directorio de la imagen original
-                    String originalImagePath = originalFile.getParent();
-                    File initialDirectory = new File(originalImagePath);
-
+                if (!appliedFilters.isEmpty()) {
                     FileChooser fileChooser = new FileChooser();
                     fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png"));
+
+                    // Obtener el nombre original del archivo sin la extensión
+                    String originalFileName = selectedTab.getText();
+                    String fileNameWithoutExtension = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
+                    String newFileName = String.join("_", appliedFilters) + "_" + fileNameWithoutExtension + ".png";
+
                     fileChooser.setInitialFileName(newFileName);
 
-                    // Ruta inicial como ruta de guardado predeterminada
+                    // Establecer el directorio inicial al del archivo original
+                    File initialDirectory = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex())).getParentFile();
                     fileChooser.setInitialDirectory(initialDirectory);
 
                     File file = fileChooser.showSaveDialog(null);
 
                     if (file != null) {
                         try {
-                            BufferedImage bufferedImage = SwingFXUtils.fromFXImage(originalImage, null);
+                            BufferedImage bufferedImage = SwingFXUtils.fromFXImage(currentImage, null);
                             ImageIO.write(bufferedImage, "png", file);
                         } catch (IOException ex) {
                             ex.printStackTrace();
@@ -311,6 +300,8 @@ public class Controlador {
             }
         }
     }
+
+
 
 
     @FXML
@@ -336,36 +327,35 @@ public class Controlador {
 
     @FXML
     private void deshacerCambios() {
+        gestorDeCambios(undoStack, redoStack);
+    }
+
+    private void gestorDeCambios(Stack<Image> undoStack, Stack<Image> redoStack) {
+        // Verifica si la pila de deshacer no está vacía
         if (!undoStack.isEmpty()) {
+            // Obtiene la pestaña seleccionada
             Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
             if (selectedTab != null) {
+                // Obtiene el contenedor de la imagen y la imagen actual
                 VBox vBox = (VBox) selectedTab.getContent();
                 ImageView imageView = (ImageView) vBox.getChildren().get(0);
 
+                // Guarda la imagen actual en la pila de rehacer
                 Image currentImage = imageView.getImage();
-                redoStack.push(currentImage); // Guardar la imagen actual en la pila de rehacer
+                redoStack.push(currentImage);
 
-                Image previousImage = undoStack.pop(); // Recuperar la imagen anterior
-                imageView.setImage(previousImage); // Establecer la imagen anterior
+                // Recupera la imagen anterior de la pila de deshacer
+                Image previousImage = undoStack.pop();
+
+                // Establece la imagen anterior en el ImageView
+                imageView.setImage(previousImage);
             }
         }
     }
 
     @FXML
     private void rehacerCambios() {
-        if (!redoStack.isEmpty()) {
-            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-            if (selectedTab != null) {
-                VBox vBox = (VBox) selectedTab.getContent();
-                ImageView imageView = (ImageView) vBox.getChildren().get(0);
-
-                Image currentImage = imageView.getImage();
-                undoStack.push(currentImage); // Guardar la imagen actual en la pila de deshacer
-
-                Image nextImage = redoStack.pop(); // Recuperar la imagen siguiente
-                imageView.setImage(nextImage); // Establecer la imagen siguiente
-            }
-        }
+        gestorDeCambios(redoStack, undoStack);
     }
 
 }

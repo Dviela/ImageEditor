@@ -14,7 +14,7 @@
             <Menu text="Archivo">
                 <MenuItem text="Cargar Imágenes" onAction="#cargarImagenes"/>
                 <MenuItem text="Cargar Carpeta" onAction="#cargarCarpeta"/>
-                <MenuItem text="Guardar Imágenes" onAction="#guardarImagenes"/>
+                <MenuItem text="Guardar Imágen" onAction="#guardarImagenes"/>
                 <SeparatorMenuItem/>
                 <MenuItem text="Salir" onAction="#salir"/>
             </Menu>
@@ -63,7 +63,7 @@
     <!-- Panel inferior con el botón para Guardar imágenes y el de Ver Historial-->
     <bottom>
         <HBox alignment="CENTER_RIGHT" spacing="10">
-            <Button text="Guardar Imágenes" onAction="#guardarImagenes"/>
+            <Button text="Guardar Imágen" onAction="#guardarImagenes"/>
             <Button text="Ver Historial" onAction="#verHistorial"/>
         </HBox>
     </bottom>
