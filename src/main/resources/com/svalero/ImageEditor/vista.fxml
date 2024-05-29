@@ -25,9 +25,9 @@
 
     <!-- Panel izquierdo con la lista de imágenes y botones -->
     <left>
-        <VBox spacing="10">
+        <VBox spacing="10" style="-fx-padding: 10;">
             <children>
-                <Label text="Imágenes:"/>
+                <Label text="Imágenes:" style="-fx-font-size: 15"/>
                 <ListView fx:id="listaImagenes"/>
                 <Button id="cargarImagen" text="Cargar Imágenes" onAction="#cargarImagenes"/>
                 <Button fx:id="cargarCarpeta" text="Cargar carpeta" onAction="#cargarCarpeta" />
@@ -43,14 +43,14 @@
 
     <!-- Panel derecho con lista de filtros y el botón para aplicarlos -->
     <right>
-        <VBox spacing="10">
+        <VBox spacing="10" style="-fx-padding: 10;">
             <children>
-                <Label text="Filtros"/>
-                <VBox fx:id="choiceFiltrosPane"> <!-- Contenedor para los checkbox de los filtros -->
-                    <CheckBox text="Aumento de Brillo"/>
-                    <CheckBox text="Escala de Grises"/>
-                    <CheckBox text="Invertir Color"/>
-                    <CheckBox text="Sepia"/>
+                <Label text="Filtros:" style="-fx-font-size: 15"/>
+                <VBox fx:id="choiceFiltrosPane" style="-fx-padding: 5;"> <!-- Contenedor para los checkbox de los filtros -->
+                    <CheckBox text="Aumento de Brillo" style="-fx-padding: 5"/>
+                    <CheckBox text="Escala de Grises" style="-fx-padding: 5"/>
+                    <CheckBox text="Invertir Color" style="-fx-padding: 5"/>
+                    <CheckBox text="Sepia" style="-fx-padding: 5"/>
                 </VBox>
                 <Button text="Aplicar Filtros" onAction="#aplicarFiltro"/>
             </children>
@@ -59,7 +59,7 @@
 
     <!-- Panel inferior con el botón para Guardar imágenes y el de Ver Historial-->
     <bottom>
-        <HBox alignment="CENTER_RIGHT" spacing="10">
+        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 10;">
             <Button text="Guardar Imágen" onAction="#guardarImagenes"/>
             <Button text="Ver Historial" onAction="#verHistorial"/>
         </HBox>
