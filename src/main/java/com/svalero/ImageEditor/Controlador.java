@@ -24,6 +24,7 @@ import java.io.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 public class Controlador {
 
@@ -51,6 +52,8 @@ public class Controlador {
     private final Stack<Image> undoStack = new Stack<>();
     private final Stack<Image> redoStack = new Stack<>();
     private Map<Image, List<String>> filtrosAplicados = new HashMap<>();
+    private static final String HISTORY_PATH = "logs/historial.txt"; // Límite de imágenes procesadas simultáneamente
+    private final Semaphore imageSemaphore = new Semaphore(MAX_CONCURRENT_IMAGES);
 
     @FXML
     public void initialize() {
@@ -74,7 +77,7 @@ public class Controlador {
     @FXML
     private void cargarCarpeta() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
-        directoryChooser.setTitle("Seleccionar Carpeta de Imágenes");
+        directoryChooser.setTitle("Seleccionar Carpeta con Imágenes");
         File selectedDirectory = directoryChooser.showDialog(null);
 
         if (selectedDirectory != null) {
@@ -138,272 +141,287 @@ public class Controlador {
         tabPane.getSelectionModel().select(tab);
     }
 
-//Metodos para el filtrado de imagenes
+    //Metodos para el filtrado de imagenes
+    private static final int MAX_CONCURRENT_IMAGES = 5; // Límite de imágenes procesadas simultáneamente
     @FXML
     private void aplicarFiltro() {
-        List<CheckBox> selectedCheckBoxes = obtenerCheckBoxesSeleccionados();
+        if (imageSemaphore.tryAcquire()) { // Adquirir permiso del "semáforo"
+            List<CheckBox> selectedCheckBoxes = obtenerCheckBoxesSeleccionados();
 
-        if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
-            Tab selectedTab = obtenerPestanaSeleccionada();
-            if (selectedTab != null) {
-                int index = obtenerIndicePestanaSeleccionada();
-                ImageView imageView = obtenerImageViewDesdePestana(selectedTab);
+            if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
+                Tab selectedTab = obtenerPestanaSeleccionada();
+                if (selectedTab != null) {
+                    int index = obtenerIndicePestanaSeleccionada();
+                    ImageView imageView = obtenerImageViewDesdePestana(selectedTab);
 
-                Image image = imageView.getImage();
-                imagenActualEnDeshacer(image);
-                limpiarPilaRehacer();
+                    Image image = imageView.getImage();
+                    imagenActualEnDeshacer(image);
+                    limpiarPilaRehacer();
 
-                aplicarFiltrosConProgreso(image, selectedCheckBoxes, index, imageView);
+                    aplicarFiltrosConProgreso(image, selectedCheckBoxes, index, imageView);
+                }
             }
+        } else { // Si no se puede adquirir permiso del "semáforo"
+            mostrarAlerta("Número máximo de imágenes en proceso superadas.");
         }
     }
-    private void aplicarFiltrosConProgreso(Image initialImage, List<CheckBox> checkBoxes, int index, ImageView imageView) {
-        VBox vBox = obtenerVBoxContenedor(imageView);
 
-        Task<Image> task = crearTareaFiltro(initialImage, checkBoxes, imageView, vBox, index);
+        private void aplicarFiltrosConProgreso (Image initialImage, List < CheckBox > checkBoxes,int index, ImageView
+        imageView){
+            VBox vBox = obtenerVBoxContenedor(imageView);
 
-        task.setOnSucceeded(e -> imageView.setImage(task.getValue()));
-        task.setOnFailed(e -> task.getException().printStackTrace());
+            Task<Image> task = crearTareaFiltro(initialImage, checkBoxes, imageView, vBox, index);
 
-        new Thread(task).start();
-    }
-    private List<CheckBox> obtenerCheckBoxesSeleccionados() {
-        List<CheckBox> selectedCheckBoxes = new ArrayList<>();
-        for (Node node : choiceFiltrosPane.getChildren()) {
-            if (node instanceof CheckBox checkBox && checkBox.isSelected()) {
-                selectedCheckBoxes.add(checkBox);
-            }
+            task.setOnSucceeded(e -> {
+                imageView.setImage(task.getValue());
+                imageSemaphore.release(); // Al terminar liberar el permiso del semáforo
+            });
+            task.setOnFailed(e -> {
+                task.getException().printStackTrace();
+                imageSemaphore.release(); // Si falla, libera el permiso
+            });
+
+
+            new Thread(task).start();
         }
-        return selectedCheckBoxes;
-    }
-    private void agregarBarraDeProgreso(VBox vBox, ProgressBar progressBar, Label progressLabel) {
-        javafx.application.Platform.runLater(() -> {
-            vBox.getChildren().addAll(progressBar, progressLabel);
-        });
-    }
 
-    private Tab obtenerPestanaSeleccionada() {
-        return tabPane.getSelectionModel().getSelectedItem();
-    }
+        private List<CheckBox> obtenerCheckBoxesSeleccionados () {
+            List<CheckBox> selectedCheckBoxes = new ArrayList<>();
+            for (Node node : choiceFiltrosPane.getChildren()) {
+                if (node instanceof CheckBox checkBox && checkBox.isSelected()) {
+                    selectedCheckBoxes.add(checkBox);
+                }
+            }
+            return selectedCheckBoxes;
+        }
+        private void agregarBarraDeProgreso (VBox vBox, ProgressBar progressBar, Label progressLabel){
+            javafx.application.Platform.runLater(() -> {
+                vBox.getChildren().addAll(progressBar, progressLabel);
+            });
+        }
 
-    private int obtenerIndicePestanaSeleccionada() {
-        return tabPane.getTabs().indexOf(obtenerPestanaSeleccionada());
-    }
+        private Tab obtenerPestanaSeleccionada () {
+            return tabPane.getSelectionModel().getSelectedItem();
+        }
 
-    private ImageView obtenerImageViewDesdePestana(Tab tab) {
-        VBox vBox = (VBox) tab.getContent();
-        return (ImageView) vBox.getChildren().get(0);
-    }
+        private int obtenerIndicePestanaSeleccionada () {
+            return tabPane.getTabs().indexOf(obtenerPestanaSeleccionada());
+        }
 
-    private void imagenActualEnDeshacer(Image image) {
-        undoStack.push(image);
-    }
+        private ImageView obtenerImageViewDesdePestana (Tab tab){
+            VBox vBox = (VBox) tab.getContent();
+            return (ImageView) vBox.getChildren().get(0);
+        }
 
-    private void limpiarPilaRehacer() {
-        redoStack.clear();
-    }
+        private void imagenActualEnDeshacer (Image image){
+            undoStack.push(image);
+        }
 
-    private VBox obtenerVBoxContenedor(ImageView imageView) {
-        return (VBox) imageView.getParent();
-    }
+        private void limpiarPilaRehacer () {
+            redoStack.clear();
+        }
 
-    private Task<Image> crearTareaFiltro(Image initialImage, List<CheckBox> checkBoxes, ImageView imageView, VBox vBox, int index) {
-        return new Task<>() {
-            @Override
-            protected Image call() throws Exception {
-                Image currentImage = initialImage;
-                List<String> filtersApplied = new ArrayList<>();
+        private VBox obtenerVBoxContenedor (ImageView imageView){
+            return (VBox) imageView.getParent();
+        }
 
-                for (CheckBox checkBox : checkBoxes) {
-                    if (checkBox.isSelected()) {
-                        String filter = checkBox.getText();
-                        ProgressBar filterProgressBar = new ProgressBar(0);
-                        Label filterProgressLabel = new Label("0%");
-                        agregarBarraDeProgreso(vBox, filterProgressBar, filterProgressLabel);
+        private Task<Image> crearTareaFiltro (Image initialImage, List < CheckBox > checkBoxes, ImageView
+        imageView, VBox vBox,int index){
+            return new Task<>() {
+                @Override
+                protected Image call() throws Exception {
+                    Image currentImage = initialImage;
+                    List<String> filtersApplied = new ArrayList<>();
 
-                        for (int progress = 0; progress <= 100; progress++) {
-                            updateProgress(progress / 100.0, 1);
-                            updateMessage(progress + "%");
-                            Thread.sleep(50);
+                    for (CheckBox checkBox : checkBoxes) {
+                        if (checkBox.isSelected()) {
+                            String filter = checkBox.getText();
+                            ProgressBar filterProgressBar = new ProgressBar(0);
+                            Label filterProgressLabel = new Label("0%");
+                            agregarBarraDeProgreso(vBox, filterProgressBar, filterProgressLabel);
 
-                            int finalProgress = progress;
-                            javafx.application.Platform.runLater(() -> {
-                                filterProgressBar.setProgress(finalProgress / 100.0);
-                                filterProgressLabel.setText(finalProgress + "%");
-                            });
+                            for (int progress = 0; progress <= 100; progress++) {
+                                updateProgress(progress / 100.0, 1);
+                                updateMessage(progress + "%");
+                                Thread.sleep(50);
+
+                                int finalProgress = progress;
+                                javafx.application.Platform.runLater(() -> {
+                                    filterProgressBar.setProgress(finalProgress / 100.0);
+                                    filterProgressLabel.setText(finalProgress + "%");
+                                });
+                            }
+
+                            currentImage = switch (filter) {
+                                case "Aumento de Brillo" -> new AumentoBrillo().aplicar(currentImage);
+                                case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
+                                case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
+                                case "Sepia" -> new Sepia().aplicar(currentImage);
+                                default -> null;
+                            };
+                            filtersApplied.add(filter);
                         }
-
-                        currentImage = switch (filter) {
-                            case "Aumento de Brillo" -> new AumentoBrillo().aplicar(currentImage);
-                            case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
-                            case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
-                            case "Sepia" -> new Sepia().aplicar(currentImage);
-                            default -> null;
-                        };
-                        filtersApplied.add(filter);
                     }
+
+                    String filePath = imagePaths.get(index);
+                    String fileName = new File(filePath).getName();
+                    String filtersString = String.join(", ", filtersApplied);
+                    Registro registro = new Registro(fileName, filePath, filtersString, LocalDateTime.now());
+                    historial.add(registro);
+                    guardarHistorialEnArchivo(registro);
+                    filtrosAplicados.put(currentImage, filtersApplied);
+
+                    return currentImage;
                 }
-
-                String filePath = imagePaths.get(index);
-                String fileName = new File(filePath).getName();
-                String filtersString = String.join(", ", filtersApplied);
-                Registro registro = new Registro(fileName, filePath, filtersString, LocalDateTime.now());
-                historial.add(registro);
-                guardarHistorialEnArchivo(registro);
-                filtrosAplicados.put(currentImage, filtersApplied);
-
-                return currentImage;
-            }
-        };
-    }
-
-
-
-
-    private void guardarHistorialEnArchivo(Registro registro) {
-        // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
-        String rutaHistorial = "logs/historial.txt";
-
-        try (FileWriter fw = new FileWriter(rutaHistorial, true);
-             BufferedWriter bw = new BufferedWriter(fw);
-             PrintWriter out = new PrintWriter(bw)) {
-            out.println(registro.toString());
-        } catch (IOException e) {
-            e.printStackTrace();
+            };
         }
-    }
 
 
-    @FXML
-// Métodos para guardar las imágenes
-    private void guardarImagenes() {
-        // Verificar si hay imágenes cargadas
-        if (!loadedImages.isEmpty()) {
-            // Obtener la pestaña seleccionada en el TabPane
-            Tab pestanaSeleccionada = tabPane.getSelectionModel().getSelectedItem();
-            if (pestanaSeleccionada != null) {
-                // Obtener el contenedor VBox y la imagen actual de la pestaña
-                VBox contenedorVBox = (VBox) pestanaSeleccionada.getContent();
-                ImageView imagenActual = (ImageView) contenedorVBox.getChildren().get(0);
-                Image imagen = imagenActual.getImage();
+        private void guardarHistorialEnArchivo (Registro registro){
+            // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
+            String rutaHistorial = HISTORY_PATH;
 
-                // Obtener los filtros aplicados a esta imagen
-                List<String> filtrosAplicados = obtenerFiltrosAplicados(imagen);
-
-                // Verificar si se han aplicado filtros a la imagen
-                if (!filtrosAplicados.isEmpty()) {
-                    // Mostrar ventana para guardar el archivo
-                    File archivoSeleccionado = mostrarVentanaGuardardo(pestanaSeleccionada, filtrosAplicados);
-                    if (archivoSeleccionado != null) {
-                        // Guardar la imagen en el archivo seleccionado
-                        guardarEnRuta(imagen, archivoSeleccionado);
-                    }
-                } else {
-                    // Mostrar una alerta de error si no se han seleccionado filtros
-                    mostrarAlerta("Por favor, debe aplicar al menos un filtro antes de guardar la imagen.");
-                }
-            }
-        }
-    }
-
-    // Método para obtener los filtros aplicados a una imagen
-    private List<String> obtenerFiltrosAplicados(Image imagen) {
-        return filtrosAplicados.getOrDefault(imagen, new ArrayList<>());
-    }
-
-    // Método para mostrar el diálogo de guardar archivo
-    private File mostrarVentanaGuardardo(Tab pestanaSeleccionada, List<String> filtrosAplicados) {
-        // Crear un selector de archivo y configurar filtros y nombre inicial
-        FileChooser selectorArchivo = new FileChooser();
-        selectorArchivo.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos PNG (*.png)", "*.png"));
-
-        String nombreArchivoOriginal = pestanaSeleccionada.getText();
-        String nombreArchivoSinExtension = nombreArchivoOriginal.substring(0, nombreArchivoOriginal.lastIndexOf('.'));
-        String nuevoNombreArchivo = String.join("_", filtrosAplicados) + "_" + nombreArchivoSinExtension + ".png";
-
-        selectorArchivo.setInitialFileName(nuevoNombreArchivo);
-
-        // Establecer la ruta de la imagen original como predeterminada
-        File directorioInicial = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex())).getParentFile();
-        selectorArchivo.setInitialDirectory(directorioInicial);
-
-        // Mostrar el diálogo de guardar y devolver el archivo seleccionado
-        return selectorArchivo.showSaveDialog(null);
-    }
-
-    // Método para guardar la imagen donde deseemos
-    private void guardarEnRuta(Image imagen, File ruta) {
-        // Convertir la imagen a BufferedImage y guardarla en el archivo
-        try {
-            BufferedImage imagenBuffered = SwingFXUtils.fromFXImage(imagen, null);
-            ImageIO.write(imagenBuffered, "png", ruta);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
-    }
-
-    // Método para mostrar una alerta de error
-    private void mostrarAlerta(String mensaje) {
-        Alert alerta = new Alert(Alert.AlertType.ERROR);
-        alerta.setContentText(mensaje);
-        alerta.showAndWait();
-    }
-
-
-    //Método para ver archivo historial.txt desde la aplicación
-    @FXML
-    private void verHistorial() {
-        File historialFile = new File("logs/historial.txt");
-        if (historialFile.exists()) {
-            try {
-                Desktop.getDesktop().open(historialFile);
+            try (FileWriter fw = new FileWriter(rutaHistorial, true);
+                 BufferedWriter bw = new BufferedWriter(fw);
+                 PrintWriter out = new PrintWriter(bw)) {
+                out.println(registro.toString());
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setContentText("No se ha encontrado ningún historial.");
         }
-    }
-
-    @FXML
-    private void salir() {
-        System.exit(0);
-    }
 
 
-    @FXML
-    private void deshacerCambios() {
-        gestorDeCambios(undoStack, redoStack);
-    }
+        @FXML
+// Métodos para guardar las imágenes
+        private void guardarImagenes () {
+            // Verificar si hay imágenes cargadas
+            if (!loadedImages.isEmpty()) {
+                // Obtener la pestaña seleccionada en el TabPane
+                Tab pestanaSeleccionada = tabPane.getSelectionModel().getSelectedItem();
+                if (pestanaSeleccionada != null) {
+                    // Obtener el contenedor VBox y la imagen actual de la pestaña
+                    VBox contenedorVBox = (VBox) pestanaSeleccionada.getContent();
+                    ImageView imagenActual = (ImageView) contenedorVBox.getChildren().get(0);
+                    Image imagen = imagenActual.getImage();
 
-    private void gestorDeCambios(Stack<Image> undoStack, Stack<Image> redoStack) {
-        // Verifica si la pila de deshacer no está vacía
-        if (!undoStack.isEmpty()) {
-            // Obtiene la pestaña seleccionada
-            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
-            if (selectedTab != null) {
-                // Obtiene el contenedor de la imagen y la imagen actual
-                VBox vBox = (VBox) selectedTab.getContent();
-                ImageView imageView = (ImageView) vBox.getChildren().get(0);
+                    // Obtener los filtros aplicados a esta imagen
+                    List<String> filtrosAplicados = obtenerFiltrosAplicados(imagen);
 
-                // Guarda la imagen actual en la pila de rehacer
-                Image currentImage = imageView.getImage();
-                redoStack.push(currentImage);
-
-                // Recupera la imagen anterior de la pila de deshacer
-                Image previousImage = undoStack.pop();
-
-                // Establece la imagen anterior en el ImageView
-                imageView.setImage(previousImage);
+                    // Verificar si se han aplicado filtros a la imagen
+                    if (!filtrosAplicados.isEmpty()) {
+                        // Mostrar ventana para guardar el archivo
+                        File archivoSeleccionado = mostrarVentanaGuardardo(pestanaSeleccionada, filtrosAplicados);
+                        if (archivoSeleccionado != null) {
+                            // Guardar la imagen en el archivo seleccionado
+                            guardarEnRuta(imagen, archivoSeleccionado);
+                        }
+                    } else {
+                        // Mostrar una alerta de error si no se han seleccionado filtros
+                        mostrarAlerta("Por favor, debe aplicar al menos un filtro antes de guardar la imagen.");
+                    }
+                }
             }
         }
-    }
 
-    @FXML
-    private void rehacerCambios() {
-        gestorDeCambios(redoStack, undoStack);
-    }
+        // Método para obtener los filtros aplicados a una imagen
+        private List<String> obtenerFiltrosAplicados (Image imagen){
+            return filtrosAplicados.getOrDefault(imagen, new ArrayList<>());
+        }
 
-}
+        // Método para mostrar el diálogo de guardar archivo
+        private File mostrarVentanaGuardardo (Tab pestanaSeleccionada, List < String > filtrosAplicados){
+            // Crear un selector de archivo y configurar filtros y nombre inicial
+            FileChooser selectorArchivo = new FileChooser();
+            selectorArchivo.getExtensionFilters().add(new FileChooser.ExtensionFilter("Archivos PNG (*.png)", "*.png"));
+
+            String nombreArchivoOriginal = pestanaSeleccionada.getText();
+            String nombreArchivoSinExtension = nombreArchivoOriginal.substring(0, nombreArchivoOriginal.lastIndexOf('.'));
+            String nuevoNombreArchivo = String.join("_", filtrosAplicados) + "_" + nombreArchivoSinExtension + ".png";
+
+            selectorArchivo.setInitialFileName(nuevoNombreArchivo);
+
+            // Establecer la ruta de la imagen original como predeterminada
+            File directorioInicial = new File(imagePaths.get(listaImagenes.getSelectionModel().getSelectedIndex())).getParentFile();
+            selectorArchivo.setInitialDirectory(directorioInicial);
+
+            // Mostrar el diálogo de guardar y devolver el archivo seleccionado
+            return selectorArchivo.showSaveDialog(null);
+        }
+
+        // Método para guardar la imagen donde deseemos
+        private void guardarEnRuta (Image imagen, File ruta){
+            // Convertir la imagen a BufferedImage y guardarla en el archivo
+            try {
+                BufferedImage imagenBuffered = SwingFXUtils.fromFXImage(imagen, null);
+                ImageIO.write(imagenBuffered, "png", ruta);
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        // Método para mostrar una alerta de error
+        private void mostrarAlerta (String mensaje){
+            Alert alerta = new Alert(Alert.AlertType.INFORMATION);
+            alerta.setTitle("Aviso");
+            alerta.setContentText(mensaje);
+            alerta.showAndWait();
+        }
+
+
+        //Método para ver archivo historial.txt desde la aplicación
+        @FXML
+        private void verHistorial () {
+            File historialFile = new File(HISTORY_PATH);
+            if (historialFile.exists()) {
+                try {
+                    Desktop.getDesktop().open(historialFile);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setContentText("No se ha encontrado ningún historial.");
+            }
+        }
+
+        @FXML
+        private void salir () {
+            System.exit(0);
+        }
+
+
+        @FXML
+        private void deshacerCambios () {
+            gestorDeCambios(undoStack, redoStack);
+        }
+
+        private void gestorDeCambios (Stack < Image > undoStack, Stack < Image > redoStack){
+            // Verifica si la pila de deshacer no está vacía
+            if (!undoStack.isEmpty()) {
+                // Obtiene la pestaña seleccionada
+                Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+                if (selectedTab != null) {
+                    // Obtiene el contenedor de la imagen y la imagen actual
+                    VBox vBox = (VBox) selectedTab.getContent();
+                    ImageView imageView = (ImageView) vBox.getChildren().get(0);
+
+                    // Guarda la imagen actual en la pila de rehacer
+                    Image currentImage = imageView.getImage();
+                    redoStack.push(currentImage);
+
+                    // Recupera la imagen anterior de la pila de deshacer
+                    Image previousImage = undoStack.pop();
+
+                    // Establece la imagen anterior en el ImageView
+                    imageView.setImage(previousImage);
+                }
+            }
+        }
+
+        @FXML
+        private void rehacerCambios () {
+            gestorDeCambios(redoStack, undoStack);
+        }
+
+    }
 
