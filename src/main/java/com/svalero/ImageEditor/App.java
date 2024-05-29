@@ -25,7 +25,7 @@ public class App extends Application {
     }
     @Override
     public void stop() throws Exception {
-        System.out.println("Closing ImageEditor.");
+        System.out.println("Closing ImageEditor...");
         super.stop();
     }
 

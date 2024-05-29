@@ -16,7 +16,7 @@
                 <MenuItem text="Salir" onAction="#salir"/>
             </Menu>
             <Menu text="Edición">
-                <MenuItem text="Aplicar Filtro" onAction="#aplicarFiltro"/>
+                <MenuItem text="Aplicar Filtros" onAction="#aplicarFiltro"/>
                 <MenuItem text="Deshacer Cambios" onAction="#deshacerCambios"/>
                 <MenuItem text="Rehacer Cambios" onAction="#rehacerCambios"/>
             </Menu>
@@ -46,13 +46,13 @@
         <VBox spacing="10">
             <children>
                 <Label text="Filtros"/>
-                <VBox fx:id="choiceFiltrosPane"> <!-- Contenedor para los checkboxes de filtros -->
+                <VBox fx:id="choiceFiltrosPane"> <!-- Contenedor para los checkbox de los filtros -->
                     <CheckBox text="Aumento de Brillo"/>
                     <CheckBox text="Escala de Grises"/>
                     <CheckBox text="Invertir Color"/>
                     <CheckBox text="Sepia"/>
                 </VBox>
-                <Button text="Aplicar Filtro" onAction="#aplicarFiltro"/>
+                <Button text="Aplicar Filtros" onAction="#aplicarFiltro"/>
             </children>
         </VBox>
     </right>

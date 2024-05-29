@@ -4,7 +4,6 @@ import com.svalero.ImageEditor.filtros.AumentoBrillo;
 import com.svalero.ImageEditor.filtros.EscalaGrises;
 import com.svalero.ImageEditor.filtros.InvertirColor;
 import com.svalero.ImageEditor.filtros.Sepia;
-import com.svalero.ImageEditor.AlertManager;
 import com.svalero.ImageEditor.util.Constantes;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
@@ -54,7 +53,7 @@ public class Controlador {
     private final List<Registro> historial = new ArrayList<>();
     private final Stack<Image> undoStack = new Stack<>();
     private final Stack<Image> redoStack = new Stack<>();
-    private Map<Image, List<String>> filtrosAplicados = new HashMap<>();
+    private final Map<Image, List<String>> filtrosAplicados = new HashMap<>();
 
     private final Semaphore imageSemaphore = new Semaphore(Constantes.MAX_CONCURRENT_IMAGES);
 
