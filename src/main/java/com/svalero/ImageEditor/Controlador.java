@@ -143,7 +143,7 @@ public class Controlador {
 
 //Metodos para aplicación de los FILTROS a imagenes cargadas
     @FXML
-    private void aplicarFiltro() {  //Aplica filtros
+    private void aplicarFiltro() {  //Botón Aplica filtros
         if (imageSemaphore.tryAcquire()) { // Adquirir permiso del "semáforo"
             List<CheckBox> selectedCheckBoxes = obtenerCheckBoxesSeleccionados();
 
@@ -304,6 +304,8 @@ public class Controlador {
                     AlertManager.mostrarAlerta("Por favor, debe aplicar al menos un filtro antes de guardar la imagen.");
                 }
             }
+        }else {
+            AlertManager.mostrarAlerta("No hay ninguna imagen cargada");
         }
     }
 
