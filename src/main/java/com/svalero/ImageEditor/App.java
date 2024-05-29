@@ -8,7 +8,7 @@ import javafx.stage.Stage;
 
 import java.util.Objects;
 
-public class EditorDeImagenes extends Application {
+public class App extends Application {
 
     @Override
     public void init() throws Exception {

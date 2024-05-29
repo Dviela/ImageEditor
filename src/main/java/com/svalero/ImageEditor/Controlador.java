@@ -4,6 +4,8 @@ import com.svalero.ImageEditor.filtros.AumentoBrillo;
 import com.svalero.ImageEditor.filtros.EscalaGrises;
 import com.svalero.ImageEditor.filtros.InvertirColor;
 import com.svalero.ImageEditor.filtros.Sepia;
+import com.svalero.ImageEditor.AlertManager;
+import com.svalero.ImageEditor.util.Constantes;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
@@ -25,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.Semaphore;
+
 
 public class Controlador {
 
@@ -52,8 +55,8 @@ public class Controlador {
     private final Stack<Image> undoStack = new Stack<>();
     private final Stack<Image> redoStack = new Stack<>();
     private Map<Image, List<String>> filtrosAplicados = new HashMap<>();
-    private static final String HISTORY_PATH = "logs/historial.txt"; // Límite de imágenes procesadas simultáneamente
-    private final Semaphore imageSemaphore = new Semaphore(MAX_CONCURRENT_IMAGES);
+
+    private final Semaphore imageSemaphore = new Semaphore(Constantes.MAX_CONCURRENT_IMAGES);
 
     @FXML
     public void initialize() {
@@ -142,7 +145,7 @@ public class Controlador {
     }
 
     //Metodos para el filtrado de imagenes
-    private static final int MAX_CONCURRENT_IMAGES = 5; // Límite de imágenes procesadas simultáneamente
+
     @FXML
     private void aplicarFiltro() {
         if (imageSemaphore.tryAcquire()) { // Adquirir permiso del "semáforo"
@@ -162,7 +165,7 @@ public class Controlador {
                 }
             }
         } else { // Si no se puede adquirir permiso del "semáforo"
-            mostrarAlerta("Número máximo de imágenes en proceso superadas.");
+            AlertManager.mostrarAlerta("Número máximo de imágenes en proceso superadas.");
         }
     }
 
@@ -276,21 +279,6 @@ public class Controlador {
             };
         }
 
-
-        private void guardarHistorialEnArchivo (Registro registro){
-            // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
-            String rutaHistorial = HISTORY_PATH;
-
-            try (FileWriter fw = new FileWriter(rutaHistorial, true);
-                 BufferedWriter bw = new BufferedWriter(fw);
-                 PrintWriter out = new PrintWriter(bw)) {
-                out.println(registro.toString());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-
         @FXML
 // Métodos para guardar las imágenes
         private void guardarImagenes () {
@@ -317,7 +305,7 @@ public class Controlador {
                         }
                     } else {
                         // Mostrar una alerta de error si no se han seleccionado filtros
-                        mostrarAlerta("Por favor, debe aplicar al menos un filtro antes de guardar la imagen.");
+                        AlertManager.mostrarAlerta("Por favor, debe aplicar al menos un filtro antes de guardar la imagen.");
                     }
                 }
             }
@@ -359,36 +347,37 @@ public class Controlador {
             }
         }
 
-        // Método para mostrar una alerta de error
-        private void mostrarAlerta (String mensaje){
-            Alert alerta = new Alert(Alert.AlertType.INFORMATION);
-            alerta.setTitle("Aviso");
-            alerta.setContentText(mensaje);
-            alerta.showAndWait();
-        }
-
-
-        //Método para ver archivo historial.txt desde la aplicación
-        @FXML
-        private void verHistorial () {
-            File historialFile = new File(HISTORY_PATH);
-            if (historialFile.exists()) {
-                try {
-                    Desktop.getDesktop().open(historialFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                Alert alert = new Alert(Alert.AlertType.ERROR);
-                alert.setContentText("No se ha encontrado ningún historial.");
-            }
-        }
-
         @FXML
         private void salir () {
             System.exit(0);
         }
+    //Método para ver archivo historial.txt desde el botón de la aplicación
+    @FXML
+    private void verHistorial () {
+        File historialFile = new File(Constantes.HISTORY_PATH);
+        if (historialFile.exists()) {
+            try {
+                Desktop.getDesktop().open(historialFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setContentText("No se ha encontrado ningún historial.");
+        }
+    }
+    private void guardarHistorialEnArchivo(Registro registro){
+        // Para poder cambiar la ruta donde guardar el archivo historial.txt donde quiera
+        String rutaHistorial = Constantes.HISTORY_PATH;
 
+        try (FileWriter fw = new FileWriter(rutaHistorial, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            out.println(registro.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
         @FXML
         private void deshacerCambios () {
