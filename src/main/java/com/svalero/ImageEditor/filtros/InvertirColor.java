@@ -29,7 +29,6 @@ public class InvertirColor {
                 pixelWriter.setColor(x, y, color);
             }
         }
-
         //Devuelve imagen nueva ya con filtro
         return writableImage;
     }

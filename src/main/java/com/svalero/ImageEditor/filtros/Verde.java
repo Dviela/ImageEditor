@@ -36,7 +36,6 @@ public class Verde {
                 pixelWriter.setColor(x, y, Color.color(rNew, gNew, bNew));
             }
         }
-
         return imagenProcesada;
     }
 }
