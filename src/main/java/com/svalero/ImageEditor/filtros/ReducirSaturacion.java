@@ -5,8 +5,7 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
-public class EscalaGrises {
-    // Método para aplicar el filtro de escala de grises a una imagen
+public class ReducirSaturacion {
     public Image aplicar(Image image) {
         //Recoge medidas de la imagen
         int width = (int) image.getWidth();
@@ -19,20 +18,15 @@ public class EscalaGrises {
         //Recorre los pixels de la imagen original
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
+
                 //Obtiene sus colores
                 Color color = image.getPixelReader().getColor(x, y);
+                color = color.desaturate();
 
-                // Calcula el valor de gris promedio de los componentes RGB del color
-                double gray = (color.getRed() + color.getGreen() + color.getBlue()) / 3;
-
-                // Crea un nuevo color con el valor de gris calculado
-                color = new Color(gray, gray, gray, color.getOpacity());
-
-                // Escribe el nuevo color en la posición correspondiente en la imagen nueva
+                //Cambia el color en nueva imagen
                 pixelWriter.setColor(x, y, color);
             }
         }
-
         //Devuelve imagen nueva ya con filtro
         return writableImage;
     }

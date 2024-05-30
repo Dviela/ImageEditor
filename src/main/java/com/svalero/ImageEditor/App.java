@@ -8,7 +8,7 @@ import javafx.stage.Stage;
 
 import java.util.Objects;
 
-public class EditorDeImagenes extends Application {
+public class App extends Application {
 
     @Override
     public void init() throws Exception {
@@ -20,12 +20,12 @@ public class EditorDeImagenes extends Application {
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/com/svalero/ImageEditor/vista.fxml")));
         primaryStage.setTitle("ImageEditor");
-        primaryStage.setScene(new Scene(root, 800, 650));
+        primaryStage.setScene(new Scene(root, 800, 700));
         primaryStage.show();
     }
     @Override
     public void stop() throws Exception {
-        System.out.println("Closing ImageEditor.");
+        System.out.println("Closing ImageEditor...");
         super.stop();
     }
 
