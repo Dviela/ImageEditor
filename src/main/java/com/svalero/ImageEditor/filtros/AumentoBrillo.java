@@ -1,34 +1,38 @@
 package com.svalero.ImageEditor.filtros;
 
 import javafx.scene.image.Image;
+import javafx.scene.image.PixelReader;
 import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import javafx.scene.paint.Color;
 
-//Para aumentar el brillo a una imagen
 public class AumentoBrillo {
     public Image aplicar(Image image) {
-        //Recoge medidas de la imagen
         int width = (int) image.getWidth();
         int height = (int) image.getHeight();
 
-        //Crea imagen para aplicar filtro
         WritableImage writableImage = new WritableImage(width, height);
+        PixelReader pixelReader = image.getPixelReader();
         PixelWriter pixelWriter = writableImage.getPixelWriter();
 
-        //Recorre los pixels de la imagen original
+        // Factor de aumento de brillo
+        final double factor = 0.2;
+
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
+                // Obtener el color del píxel actual
+                Color color = pixelReader.getColor(x, y);
 
-                //Obtiene sus colores
-                Color color = image.getPixelReader().getColor(x, y);
-                color = color.brighter();
+                // Calcular nuevos componentes de color con aumento de brillo
+                double r = Math.min(1.0, color.getRed() + factor);
+                double g = Math.min(1.0, color.getGreen() + factor);
+                double b = Math.min(1.0, color.getBlue() + factor);
 
-                //Cambia el color en nueva imagen
-                pixelWriter.setColor(x, y, color);
+                // Asignar el nuevo color al píxel en la imagen resultante
+                pixelWriter.setColor(x, y, Color.color(r, g, b));
             }
         }
-        //Devuelve imagen nueva ya con filtro
+
         return writableImage;
     }
 }

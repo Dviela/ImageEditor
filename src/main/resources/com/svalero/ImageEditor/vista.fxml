@@ -47,11 +47,12 @@
             <children>
                 <Label text="Filtros:" style="-fx-font-size: 15"/>
                 <VBox fx:id="choiceFiltrosPane" style="-fx-padding: 5;"> <!-- Contenedor para los checkbox de los filtros -->
-                    <CheckBox text="Aumento de Brillo" style="-fx-padding: 5"/>
+                    <CheckBox text="Aumentar Brillo" style="-fx-padding: 5"/>
                     <CheckBox text="Escala de Grises" style="-fx-padding: 5"/>
                     <CheckBox text="Invertir Color" style="-fx-padding: 5"/>
                     <CheckBox text="Sepia" style="-fx-padding: 5"/>
                     <CheckBox text="Verde" style="-fx-padding: 5"/>
+                    <CheckBox text="Reducir Saturación" style="-fx-padding: 5"/>
                 </VBox>
                 <Button text="Aplicar Filtros" onAction="#aplicarFiltro"/>
             </children>

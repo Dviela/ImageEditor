@@ -255,6 +255,7 @@ public class Controlador {
                             case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
                             case "Sepia" -> new Sepia().aplicar(currentImage);
                             case "Verde" -> new Verde().aplicar(currentImage);
+                            case "Reducir Saturación" -> new ReducirSaturacion().aplicar(currentImage);
                             default -> null;
                         };
                         filtersApplied.add(filter);
