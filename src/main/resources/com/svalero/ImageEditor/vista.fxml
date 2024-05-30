@@ -51,6 +51,7 @@
                     <CheckBox text="Escala de Grises" style="-fx-padding: 5"/>
                     <CheckBox text="Invertir Color" style="-fx-padding: 5"/>
                     <CheckBox text="Sepia" style="-fx-padding: 5"/>
+                    <CheckBox text="Verde" style="-fx-padding: 5"/>
                 </VBox>
                 <Button text="Aplicar Filtros" onAction="#aplicarFiltro"/>
             </children>

@@ -1,9 +1,6 @@
 package com.svalero.ImageEditor;
 
-import com.svalero.ImageEditor.filtros.AumentoBrillo;
-import com.svalero.ImageEditor.filtros.EscalaGrises;
-import com.svalero.ImageEditor.filtros.InvertirColor;
-import com.svalero.ImageEditor.filtros.Sepia;
+import com.svalero.ImageEditor.filtros.*;
 import com.svalero.ImageEditor.util.Constantes;
 import javafx.concurrent.Task;
 import javafx.embed.swing.SwingFXUtils;
@@ -257,6 +254,7 @@ public class Controlador {
                             case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
                             case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
                             case "Sepia" -> new Sepia().aplicar(currentImage);
+                            case "Verde" -> new Verde().aplicar(currentImage);
                             default -> null;
                         };
                         filtersApplied.add(filter);
