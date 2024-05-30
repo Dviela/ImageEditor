@@ -14,7 +14,6 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -24,22 +23,11 @@ import java.util.*;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-
 public class Controlador {
 
     public VBox choiceFiltrosPane;
     @FXML
     private ListView<String> listaImagenes;
-    @FXML
-    private ComboBox<String> choiceFiltros;
-    @FXML
-    private Button cargarImagenes;
-    @FXML
-    private Button cargarCarpeta;
-    @FXML
-    private Button aplicarFiltro;
-    @FXML
-    private Button guardarImagenes;
     @FXML
     private TabPane tabPane;
 
@@ -52,13 +40,14 @@ public class Controlador {
     private final Stack<Image> redoStack = new Stack<>();
     private final Map<Image, List<String>> filtrosAplicados = new HashMap<>();
 
-    private final Semaphore imageSemaphore = new Semaphore(Constantes.MAX_CONCURRENT_IMAGES);
+    private final Semaphore imageSemaphore = new Semaphore(Constantes.MAX_CONCURRENT_IMAGES);   //Semáforo para limitar Imagenes procesadas simultaneamente
 
     @FXML
     public void initialize() {
         listaImagenes.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> mostrarImagenSeleccionada());
     }
-//Métos para CARGAR IMAGENES que queremos filtrar
+
+//Métodos para CARGAR IMAGENES que queremos filtrar
     @FXML
     private void cargarImagenes() {     //Carga Imágenes seleccionadas "a mano"
         FileChooser fileChooser = new FileChooser();
@@ -140,25 +129,31 @@ public class Controlador {
 
 //Metodos para aplicación de los FILTROS a imagenes cargadas
     @FXML
-    private void aplicarFiltro() {  //Botón Aplica filtros
-        if (imageSemaphore.tryAcquire()) { // Adquirir permiso del "semáforo"
-            List<CheckBox> selectedCheckBoxes = obtenerCheckBoxesSeleccionados();
+    private void aplicarFiltro() {  //Botón Aplicar filtros
+        boolean sinFiltros = obtenerCheckBoxesSeleccionados().isEmpty();
 
-            if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
-                Tab selectedTab = obtenerPestanaSeleccionada();
-                if (selectedTab != null) {
-                    int index = obtenerIndicePestanaSeleccionada();
-                    ImageView imageView = obtenerImageViewDesdePestana(selectedTab);
+        if (sinFiltros){
+            AlertManager.mostrarAlerta("No hay filtros seleccionados para aplicar a la imagen. Marque al menos un filtro");
+        }else {
+            if (imageSemaphore.tryAcquire()) {  // Si Adquiere permiso del "semáforo"
+                List<CheckBox> selectedCheckBoxes = obtenerCheckBoxesSeleccionados();
 
-                    Image image = imageView.getImage();
-                    imagenActualEnDeshacer(image);
-                    limpiarPilaRehacer();
+                if (!loadedImages.isEmpty() && !selectedCheckBoxes.isEmpty()) {
+                    Tab selectedTab = obtenerPestanaSeleccionada();
+                    if (selectedTab != null) {
+                        int index = obtenerIndicePestanaSeleccionada();
+                        ImageView imageView = obtenerImageViewDesdePestana(selectedTab);
 
-                    aplicarFiltrosConProgreso(image, selectedCheckBoxes, index, imageView);
+                        Image image = imageView.getImage();
+                        imagenActualEnDeshacer(image);
+                        limpiarPilaRehacer();
+
+                        aplicarFiltrosConProgreso(image, selectedCheckBoxes, index, imageView);
+                    }
                 }
+            } else { // Si no se puede adquirir permiso del "semáforo"
+                AlertManager.mostrarAlerta("Número máximo de imágenes en proceso superadas.");
             }
-        } else { // Si no se puede adquirir permiso del "semáforo"
-            AlertManager.mostrarAlerta("Número máximo de imágenes en proceso superadas.");
         }
     }
 
@@ -250,7 +245,7 @@ public class Controlador {
                         }
 
                         currentImage = switch (filter) {
-                            case "Aumento de Brillo" -> new AumentoBrillo().aplicar(currentImage);
+                            case "Aumentar Brillo" -> new AumentoBrillo().aplicar(currentImage);
                             case "Escala de Grises" -> new EscalaGrises().aplicar(currentImage);
                             case "Invertir Color" -> new InvertirColor().aplicar(currentImage);
                             case "Sepia" -> new Sepia().aplicar(currentImage);
@@ -304,15 +299,13 @@ public class Controlador {
                 }
             }
         }else {
-            AlertManager.mostrarAlerta("No hay ninguna imagen cargada");
+            AlertManager.mostrarAlerta("No se ha encontrado ninguna imagen cargada. Cargue una o varias imágenes, y despues aplique al menos un filtro para poder guardar.");
         }
     }
-
 
     private List<String> obtenerFiltrosAplicados(Image imagen) { // Ppara obtener los filtros aplicados a una imagen
         return filtrosAplicados.getOrDefault(imagen, new ArrayList<>());
     }
-
 
     private File mostrarVentanaGuardardo(Tab pestanaSeleccionada, List<String> filtrosAplicados) {  //Para mostrar la ventana de guardar archivo
         // Crea un selector de archivo y configurar nombre inicial
@@ -332,7 +325,6 @@ public class Controlador {
         // Mostrar ventana de guardado y devuelve el archivo seleccionado
         return selectorArchivo.showSaveDialog(null);
     }
-
 
     private void guardarEnRuta(Image imagen, File ruta) { // Para guardar la imagen donde queramos
         try {
@@ -359,8 +351,7 @@ public class Controlador {
                 e.printStackTrace();
             }
         } else {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setContentText("No se ha encontrado ningún historial.");
+            AlertManager.mostrarAlerta("No se encontró el historial. Debe hacer uso de la aplicación para que se cree un historial con los Registros correspondientes");
         }
     }
 
@@ -409,6 +400,5 @@ public class Controlador {
     private void rehacerCambios() {
         gestorDeCambios(redoStack, undoStack);
     }
-
 }
 

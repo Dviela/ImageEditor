@@ -39,7 +39,6 @@ public class Sepia {
                 pixelWriter.setColor(x, y, color);
             }
         }
-
         // Devuelve la imagen con el filtro de sepia aplicado
         return writableImage;
     }

@@ -32,7 +32,6 @@ public class AumentoBrillo {
                 pixelWriter.setColor(x, y, Color.color(r, g, b));
             }
         }
-
         return writableImage;
     }
 }
